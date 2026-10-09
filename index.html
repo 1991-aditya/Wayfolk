@@ -18,12 +18,14 @@ h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em}
 input,select,textarea,button{font:inherit;color:inherit}
 input,select,textarea{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:#fff;width:100%}
 button{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r);padding:8px 14px;font-weight:600}
+button:disabled{opacity:.6;cursor:wait}
 button.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--stay);outline-offset:2px}
 .chips{display:flex;gap:6px}
 .chip{background:#fff;color:var(--ink);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
 .chip[aria-pressed=true]{background:var(--ink);color:#fff}
 .chip i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.who{font-size:13px;color:#47585f;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 main{display:grid;grid-template-columns:1fr 340px;min-height:0}
 #map{height:100%;min-height:300px}
 aside{border-left:1px solid var(--line);overflow:auto;padding:12px;background:#fff}
@@ -35,13 +37,15 @@ aside{border-left:1px solid var(--line);overflow:auto;padding:12px;background:#f
 .meta{margin-top:6px;font-weight:600}
 .empty{color:#47585f;padding:20px 4px;line-height:1.5}
 video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#000}
+.del{margin-top:8px;background:#fff;color:var(--food);border-color:var(--food);padding:4px 10px}
 #form{position:fixed;inset:auto 0 0 auto;width:360px;max-width:100%;max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--ink);border-radius:14px 14px 0 0;padding:16px;display:none;z-index:1000;box-shadow:0 -8px 30px rgba(0,0,0,.15)}
 #form.open{display:block}
-#form label{display:block;margin:10px 0 4px;font-weight:600}
-.row{display:flex;gap:8px;margin-top:14px}
-.hint{color:#47585f;font-size:13px;margin:6px 0 0}
+label{display:block;margin:10px 0 4px;font-weight:600}
+.row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hint{color:#47585f;font-size:13px;margin:6px 0 0;line-height:1.4}
+dialog{border:1px solid var(--ink);border-radius:14px;padding:18px;width:340px;max-width:92vw}
+dialog::backdrop{background:rgba(20,35,43,.5)}
 @media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:55% 45%}aside{border-left:0;border-top:1px solid var(--line)}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -54,6 +58,8 @@ video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#0
     <button class="chip" data-t="food" aria-pressed="true"><i style="background:var(--food)"></i>Food</button>
   </div>
   <button id="add">Share a place</button>
+  <span class="who" id="who"></span>
+  <button class="ghost" id="authbtn">Log in</button>
 </header>
 <main>
   <div id="map" aria-label="World map"></div>
@@ -62,98 +68,134 @@ video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#0
 
 <section id="form" aria-label="Share a place">
   <h2 style="margin:0">Share a place</h2>
-  <p class="hint" id="pinhint">Click the map to drop a pin.</p>
+  <p class="hint" id="pinhint">Tap the map to drop a pin.</p>
   <label for="ftype">What are you sharing?</label>
   <select id="ftype"><option value="story">A story or tip</option><option value="stay">A stay I can host</option><option value="food">A local meal or food spot</option></select>
   <label for="ftitle">Title</label><input id="ftitle" maxlength="80">
   <label for="ftext">Details</label><textarea id="ftext" rows="4" maxlength="800"></textarea>
   <div id="pricebox" style="display:none"><label for="fprice">Price in USD (per night or per meal)</label><input id="fprice" type="number" min="0" step="1"></div>
-  <label for="fvid">Video (optional)</label><input id="fvid" type="file" accept="video/*">
+  <label for="fvid">Video (optional, max 50 MB, mp4 or webm)</label><input id="fvid" type="file" accept="video/mp4,video/webm,video/quicktime">
   <div class="row"><button id="save">Publish</button><button class="ghost" id="cancel" type="button">Cancel</button></div>
 </section>
 
+<dialog id="auth">
+  <h2 style="margin:0">Welcome to Wayfolk</h2>
+  <p class="hint">Log in to share places. Browsing the map needs no account.</p>
+  <label for="em">Email</label><input id="em" type="email" autocomplete="email">
+  <label for="pw">Password (6+ characters)</label><input id="pw" type="password" autocomplete="current-password">
+  <p class="hint" id="amsg" role="status"></p>
+  <div class="row"><button id="login">Log in</button><button class="ghost" id="signup">Create account</button><button class="ghost" id="aclose">Close</button></div>
+</dialog>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
 <script>
+const sb=supabase.createClient('https://fdgcndmgaomsorwnvgtv.supabase.co','sb_publishable_3GO5xaV509MPbt6_YsaSYQ_ERO1sLkK');
 const COLORS={story:'#1e8a8a',stay:'#e08e1b',food:'#c8452d'};
 const LABEL={story:'Story',stay:'Stay',food:'Food'};
 const $=id=>document.getElementById(id);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-/* ---- storage: posts in localStorage, videos in IndexedDB ---- */
-const SEED=[
- {id:'s1',type:'stay',title:'Spare room in a haveli lane',text:'Quiet room with a rooftop view. Breakfast with the family included.',price:12,lat:26.9124,lng:75.7873},
- {id:'s2',type:'food',title:'Sunday dal baati at our home',text:'Cooked on a wood fire. Up to six guests.',price:6,lat:26.9239,lng:75.8267},
- {id:'s3',type:'story',title:'Sunrise over the boulders',text:'Go before 6am. The temple complex is empty and cool.',price:null,lat:15.335,lng:76.46}
-];
-let posts=JSON.parse(localStorage.getItem('wf_posts')||'null')||SEED;
-const save=()=>localStorage.setItem('wf_posts',JSON.stringify(posts));
-const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('wf',1);r.onupgradeneeded=()=>r.result.createObjectStore('v');r.onsuccess=()=>res(r.result);r.onerror=rej});
-async function putVid(id,blob){const d=await idb();return new Promise(r=>{const t=d.transaction('v','readwrite');t.objectStore('v').put(blob,id);t.oncomplete=r})}
-async function getVid(id){const d=await idb();return new Promise(r=>{const q=d.transaction('v').objectStore('v').get(id);q.onsuccess=()=>r(q.result)})}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let posts=[],user=null,pin=null,formOpen=false;
+const on={story:true,stay:true,food:true};
 
 /* ---- map ---- */
 const map=L.map('map',{minZoom:2,worldCopyJump:true}).setView([22,30],2);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
 const layer=L.layerGroup().addTo(map);
-const on={story:true,stay:true,food:true};
-let pin=null,formOpen=false;
 
 function render(){
   layer.clearLayers();
   const b=map.getBounds(),vis=[];
   posts.filter(p=>on[p.type]).forEach(p=>{
-    L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:2,fillColor:COLORS[p.type],fillOpacity:1})
-      .addTo(layer).on('click',()=>open(p));
+    L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:2,fillColor:COLORS[p.type],fillOpacity:1}).addTo(layer).on('click',()=>show(p));
     if(b.contains([p.lat,p.lng]))vis.push(p);
   });
   $('list').innerHTML=vis.length?vis.map(cardHtml).join(''):'<div class="empty">Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
-  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>open(posts.find(p=>p.id===c.dataset.id)));
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(posts.find(p=>p.id===c.dataset.id)));
 }
-function cardHtml(p){
-  return `<div class="card" data-id="${p.id}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>
-  <h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>${p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:''}</div>`;
-}
-async function open(p){
+const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
+const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span><h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
+
+function show(p){
   const el=document.createElement('div');
-  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.text)}${p.price!=null?`<br><b>$${esc(p.price)}</b>`:''}<div class="vid"></div>`;
+  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
+  if(p.video_path){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl;el.appendChild(v)}
+  if(user&&p.user_id===user.id){const d=document.createElement('button');d.className='del';d.textContent='Delete my post';d.onclick=()=>del(p);el.appendChild(d)}
   L.popup({maxWidth:300}).setLatLng([p.lat,p.lng]).setContent(el).openOn(map);
-  const blob=await getVid(p.id).catch(()=>null);
-  if(blob){const v=document.createElement('video');v.controls=true;v.src=URL.createObjectURL(blob);el.querySelector('.vid').appendChild(v)}
+}
+async function del(p){
+  if(!confirm('Delete this post?'))return;
+  if(p.video_path)await sb.storage.from('videos').remove([p.video_path]);
+  const {error}=await sb.from('posts').delete().eq('id',p.id);
+  if(error){alert('Could not delete: '+error.message);return}
+  map.closePopup();load();
+}
+async function load(){
+  const {data,error}=await sb.from('posts').select('*').order('created_at',{ascending:false}).limit(500);
+  if(error){$('list').innerHTML='<div class="empty">Could not load posts. Check your internet and refresh.</div>';return}
+  posts=data;render();
 }
 map.on('moveend',render);
 
-/* ---- filters ---- */
-$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;
-  const t=b.dataset.t;on[t]=!on[t];b.setAttribute('aria-pressed',on[t]);render()};
-
-/* ---- search (OpenStreetMap Nominatim) ---- */
+/* ---- filters and search ---- */
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const t=b.dataset.t;on[t]=!on[t];b.setAttribute('aria-pressed',on[t]);render()};
 $('sf').onsubmit=async e=>{e.preventDefault();const q=$('q').value.trim();if(!q)return;
   try{
     const r=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
     if(!r.length){$('list').innerHTML='<div class="empty">No place found for that search. Try a nearby city name.</div>';return}
     const bb=r[0].boundingbox.map(Number);map.flyToBounds([[bb[0],bb[2]],[bb[1],bb[3]]],{maxZoom:13});
-  }catch{ $('list').innerHTML='<div class="empty">Search needs an internet connection.</div>' }
+  }catch{$('list').innerHTML='<div class="empty">Search needs an internet connection.</div>'}
 };
 
+/* ---- auth ---- */
+function paintAuth(){$('who').textContent=user?user.email:'';$('authbtn').textContent=user?'Log out':'Log in'}
+sb.auth.getSession().then(({data})=>{user=data.session?.user||null;paintAuth();render()});
+sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;paintAuth();render()});
+$('authbtn').onclick=()=>{if(user){sb.auth.signOut()}else{$('amsg').textContent='';$('auth').showModal()}};
+$('aclose').onclick=()=>$('auth').close();
+async function doAuth(signup){
+  const email=$('em').value.trim(),password=$('pw').value;
+  if(!email||password.length<6){$('amsg').textContent='Enter an email and a password of at least 6 characters.';return}
+  $('amsg').textContent='Please wait…';
+  const {data,error}=signup?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
+  if(error){$('amsg').textContent=error.message;return}
+  if(signup&&!data.session){$('amsg').textContent='Account created. Check your email and tap the confirmation link, then log in.';return}
+  $('auth').close();
+}
+$('login').onclick=()=>doAuth(false);
+$('signup').onclick=()=>doAuth(true);
+
 /* ---- share form ---- */
-$('add').onclick=()=>{formOpen=true;$('form').classList.add('open')};
+$('add').onclick=()=>{if(!user){$('amsg').textContent='Log in first to share a place.';$('auth').showModal();return}formOpen=true;$('form').classList.add('open')};
 $('cancel').onclick=closeForm;
 function closeForm(){formOpen=false;$('form').classList.remove('open');if(pin){map.removeLayer(pin);pin=null}
-  ['ftitle','ftext','fprice','fvid'].forEach(i=>$(i).value='');$('pinhint').textContent='Click the map to drop a pin.'}
+  ['ftitle','ftext','fprice','fvid'].forEach(i=>$(i).value='');$('pinhint').textContent='Tap the map to drop a pin.'}
 map.on('click',e=>{if(!formOpen)return;if(pin)map.removeLayer(pin);
   pin=L.marker(e.latlng).addTo(map);$('pinhint').textContent=`Pin set at ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`});
 $('ftype').onchange=()=>{$('pricebox').style.display=$('ftype').value==='story'?'none':'block'};
 $('save').onclick=async()=>{
+  if(!user){$('auth').showModal();return}
   if(!pin){$('pinhint').textContent='Drop a pin on the map first.';return}
   const title=$('ftitle').value.trim();if(!title){$('ftitle').focus();return}
-  const type=$('ftype').value,id='p'+Date.now(),ll=pin.getLatLng();
-  const price=type!=='story'&&$('fprice').value!==''?Number($('fprice').value):null;
-  const f=$('fvid').files[0];
-  if(f){if(f.size>60*1024*1024){$('pinhint').textContent='Video is over 60 MB. Choose a shorter clip.';return}await putVid(id,f)}
-  posts.push({id,type,title,text:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng});
-  save();closeForm();render();
+  const type=$('ftype').value,ll=pin.getLatLng(),f=$('fvid').files[0],btn=$('save');
+  if(f&&f.size>50*1024*1024){$('pinhint').textContent='Video is over 50 MB. Choose a shorter clip.';return}
+  btn.disabled=true;btn.textContent='Publishing…';
+  try{
+    let video_path=null;
+    if(f){
+      const ext=(f.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
+      video_path=`${user.id}/${Date.now()}.${ext}`;
+      const {error:ue}=await sb.storage.from('videos').upload(video_path,f,{contentType:f.type});
+      if(ue)throw ue;
+    }
+    const price=type!=='story'&&$('fprice').value!==''?Number($('fprice').value):null;
+    const {error}=await sb.from('posts').insert({type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path});
+    if(error)throw error;
+    closeForm();await load();
+  }catch(e){$('pinhint').textContent='Could not publish: '+(e.message||'unknown error')}
+  finally{btn.disabled=false;btn.textContent='Publish'}
 };
-render();
+load();
 </script>
 </body>
 </html>
