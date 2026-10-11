@@ -85,6 +85,14 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   <label for="pw">Password (6+ characters)</label><input id="pw" type="password" autocomplete="current-password">
   <p class="hint" id="amsg" role="status"></p>
   <div class="row"><button id="login">Log in</button><button class="ghost" id="signup">Create account</button><button class="ghost" id="aclose">Close</button></div>
+  <div class="row" style="margin-top:8px"><button class="ghost" id="forgot" type="button">Forgot password?</button></div>
+</dialog>
+
+<dialog id="newpw">
+  <h2 style="margin:0">Set a new password</h2>
+  <label for="np">New password (6+ characters)</label><input id="np" type="password" autocomplete="new-password">
+  <p class="hint" id="npmsg" role="status"></p>
+  <div class="row"><button id="npsave">Save password</button></div>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -150,7 +158,8 @@ $('sf').onsubmit=async e=>{e.preventDefault();const q=$('q').value.trim();if(!q)
 /* ---- auth ---- */
 function paintAuth(){$('who').textContent=user?user.email:'';$('authbtn').textContent=user?'Log out':'Log in'}
 sb.auth.getSession().then(({data})=>{user=data.session?.user||null;paintAuth();render()});
-sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;paintAuth();render()});
+sb.auth.onAuthStateChange((ev,s)=>{user=s?.user||null;paintAuth();render();
+  if(ev==='PASSWORD_RECOVERY'){$('auth').close();$('npmsg').textContent='';$('newpw').showModal()}});
 $('authbtn').onclick=()=>{if(user){sb.auth.signOut()}else{$('amsg').textContent='';$('auth').showModal()}};
 $('aclose').onclick=()=>$('auth').close();
 async function doAuth(signup){
@@ -162,6 +171,20 @@ async function doAuth(signup){
   if(signup&&!data.session){$('amsg').textContent='Account created. Check your email and tap the confirmation link, then log in.';return}
   $('auth').close();
 }
+$('forgot').onclick=async()=>{
+  const email=$('em').value.trim();
+  if(!email){$('amsg').textContent='Type your email above first, then tap Forgot password.';return}
+  $('amsg').textContent='Please wait…';
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  $('amsg').textContent=error?error.message:'If this email has an account, a reset link is on its way. Check your inbox and spam folder.';
+};
+$('npsave').onclick=async()=>{
+  const password=$('np').value;
+  if(password.length<6){$('npmsg').textContent='Use at least 6 characters.';return}
+  const {error}=await sb.auth.updateUser({password});
+  if(error){$('npmsg').textContent=error.message;return}
+  $('np').value='';$('newpw').close();
+};
 $('login').onclick=()=>doAuth(false);
 $('signup').onclick=()=>doAuth(true);
 
