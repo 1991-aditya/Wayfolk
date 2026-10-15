@@ -37,6 +37,8 @@ aside{border-left:1px solid var(--line);overflow:auto;padding:12px;background:#f
 .meta{margin-top:6px;font-weight:600}
 .empty{color:#47585f;padding:20px 4px;line-height:1.5}
 video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#000}
+.thumb{width:100%;height:120px;object-fit:cover;border-radius:8px;margin:8px 0 2px}
+.pics{display:flex;gap:6px;margin-top:8px}.pics img{width:88px;height:88px;object-fit:cover;border-radius:8px;display:block}
 .del{margin-top:8px;background:#fff;color:var(--food);border-color:var(--food);padding:4px 10px}
 #form{position:fixed;inset:auto 0 0 auto;width:360px;max-width:100%;max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--ink);border-radius:14px 14px 0 0;padding:16px;display:none;z-index:1000;box-shadow:0 -8px 30px rgba(0,0,0,.15)}
 #form.open{display:block}
@@ -53,9 +55,10 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   <h1>Pathik</h1>
   <form class="search" id="sf" role="search"><input id="q" placeholder="Search a place, e.g. Hampi, Lisbon, Kyoto" aria-label="Search a place"><button>Search</button></form>
   <div class="chips" id="chips">
-    <button class="chip" data-t="story" aria-pressed="true"><i style="background:var(--story)"></i>Stories</button>
-    <button class="chip" data-t="stay" aria-pressed="true"><i style="background:var(--stay)"></i>Stays</button>
-    <button class="chip" data-t="food" aria-pressed="true"><i style="background:var(--food)"></i>Food</button>
+    <button class="chip" data-t="all" aria-pressed="true">All</button>
+    <button class="chip" data-t="story" aria-pressed="false"><i style="background:var(--story)"></i>Stories</button>
+    <button class="chip" data-t="stay" aria-pressed="false"><i style="background:var(--stay)"></i>Stays</button>
+    <button class="chip" data-t="food" aria-pressed="false"><i style="background:var(--food)"></i>Food</button>
   </div>
   <button id="add">Share a place</button>
   <span class="who" id="who"></span>
@@ -69,13 +72,17 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
 <section id="form" aria-label="Share a place">
   <h2 style="margin:0">Share a place</h2>
   <p class="hint" id="pinhint">Tap the map to drop a pin.</p>
+  <button class="ghost" id="locate" type="button" style="margin-top:8px">Use my current location</button>
   <label for="ftype">What are you sharing?</label>
   <select id="ftype"><option value="story">A story or tip</option><option value="stay">A stay I can host</option><option value="food">A local meal or food spot</option></select>
+  <p class="hint" id="stayhint" style="display:none">Everyone can see the pin. For a stay, place it near your area rather than exactly on your home.</p>
   <label for="ftitle">Title</label><input id="ftitle" maxlength="80">
   <label for="ftext">Details</label><textarea id="ftext" rows="4" maxlength="800"></textarea>
   <div id="pricebox" style="display:none"><label for="fprice">Price in USD (per night or per meal)</label><input id="fprice" type="number" min="0" step="1"></div>
+  <label for="fpic">Photos (optional, up to 3)</label><input id="fpic" type="file" accept="image/*" multiple>
   <label for="fvid">Video (optional, max 50 MB, mp4 or webm)</label><input id="fvid" type="file" accept="video/mp4,video/webm,video/quicktime">
   <div class="row"><button id="save">Publish</button><button class="ghost" id="cancel" type="button">Cancel</button></div>
+  <p class="hint" id="pubmsg" role="alert"></p>
 </section>
 
 <dialog id="auth">
@@ -104,7 +111,7 @@ const LABEL={story:'Story',stay:'Stay',food:'Food'};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let posts=[],user=null,pin=null,formOpen=false;
-const on={story:true,stay:true,food:true};
+let filter='all';
 
 /* ---- map ---- */
 const map=L.map('map',{minZoom:2,worldCopyJump:true}).setView([22,30],2);
@@ -114,19 +121,24 @@ const layer=L.layerGroup().addTo(map);
 function render(){
   layer.clearLayers();
   const b=map.getBounds(),vis=[];
-  posts.filter(p=>on[p.type]).forEach(p=>{
+  posts.filter(p=>filter==='all'||p.type===filter).forEach(p=>{
     L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:2,fillColor:COLORS[p.type],fillOpacity:1}).addTo(layer).on('click',()=>show(p));
     if(b.contains([p.lat,p.lng]))vis.push(p);
   });
   $('list').innerHTML=vis.length?vis.map(cardHtml).join(''):'<div class="empty">Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
   document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(posts.find(p=>p.id===c.dataset.id)));
 }
+const photoUrl=x=>sb.storage.from('photos').getPublicUrl(x).data.publicUrl;
+const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${esc(photoUrl(p.photo_paths[0]))}" alt="" loading="lazy">`:'';
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
-const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span><h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
+const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
 function show(p){
   const el=document.createElement('div');
   el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
+  if(p.photo_paths&&p.photo_paths.length){const g=document.createElement('div');g.className='pics';
+    p.photo_paths.forEach(x=>{const a=document.createElement('a');a.href=photoUrl(x);a.target='_blank';a.rel='noopener';
+      const im=document.createElement('img');im.src=photoUrl(x);im.alt=p.title;im.loading='lazy';a.appendChild(im);g.appendChild(a)});el.appendChild(g)}
   if(p.video_path){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl;el.appendChild(v)}
   if(user&&p.user_id===user.id){const d=document.createElement('button');d.className='del';d.textContent='Delete my post';d.onclick=()=>del(p);el.appendChild(d)}
   L.popup({maxWidth:300}).setLatLng([p.lat,p.lng]).setContent(el).openOn(map);
@@ -134,6 +146,7 @@ function show(p){
 async function del(p){
   if(!confirm('Delete this post?'))return;
   if(p.video_path)await sb.storage.from('videos').remove([p.video_path]);
+  if(p.photo_paths&&p.photo_paths.length)await sb.storage.from('photos').remove(p.photo_paths);
   const {error}=await sb.from('posts').delete().eq('id',p.id);
   if(error){alert('Could not delete: '+error.message);return}
   map.closePopup();load();
@@ -146,7 +159,8 @@ async function load(){
 map.on('moveend',render);
 
 /* ---- filters and search ---- */
-$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const t=b.dataset.t;on[t]=!on[t];b.setAttribute('aria-pressed',on[t]);render()};
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;filter=b.dataset.t;
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));render()};
 $('sf').onsubmit=async e=>{e.preventDefault();const q=$('q').value.trim();if(!q)return;
   try{
     const r=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
@@ -192,30 +206,63 @@ $('signup').onclick=()=>doAuth(true);
 $('add').onclick=()=>{if(!user){$('amsg').textContent='Log in first to share a place.';$('auth').showModal();return}formOpen=true;$('form').classList.add('open')};
 $('cancel').onclick=closeForm;
 function closeForm(){formOpen=false;$('form').classList.remove('open');if(pin){map.removeLayer(pin);pin=null}
-  ['ftitle','ftext','fprice','fvid'].forEach(i=>$(i).value='');$('pinhint').textContent='Tap the map to drop a pin.'}
-map.on('click',e=>{if(!formOpen)return;if(pin)map.removeLayer(pin);
-  pin=L.marker(e.latlng).addTo(map);$('pinhint').textContent=`Pin set at ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`});
-$('ftype').onchange=()=>{$('pricebox').style.display=$('ftype').value==='story'?'none':'block'};
+  ['ftitle','ftext','fprice','fvid','fpic'].forEach(i=>$(i).value='');$('pinhint').textContent='Tap the map to drop a pin.'}
+function hintPin(){const ll=pin.getLatLng();$('pinhint').textContent=`Pin set at ${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}. Drag the pin to adjust.`}
+function setPin(ll){if(pin)map.removeLayer(pin);pin=L.marker(ll,{draggable:true}).addTo(map);pin.on('dragend',hintPin);hintPin()}
+map.on('click',e=>{if(!formOpen)return;setPin(e.latlng)});
+$('locate').onclick=()=>{
+  if(!navigator.geolocation){$('pinhint').textContent='This browser cannot share your location. Tap the map instead.';return}
+  const b=$('locate');b.disabled=true;b.textContent='Finding you…';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const ll=L.latLng(pos.coords.latitude,pos.coords.longitude);
+    setPin(ll);map.setView(ll,Math.max(map.getZoom(),15));
+    if(pos.coords.accuracy>100)$('pinhint').textContent+=` Accuracy is about ${Math.round(pos.coords.accuracy)} m, so please check the pin.`;
+    b.disabled=false;b.textContent='Use my current location';
+  },err=>{
+    $('pinhint').textContent=err.code===1?'Location permission was denied. Allow it in your browser settings, or tap the map instead.':err.code===3?'Finding your location took too long. Try again, or tap the map.':'Could not get your location. Tap the map instead.';
+    b.disabled=false;b.textContent='Use my current location';
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+};
+$('ftype').onchange=()=>{const t=$('ftype').value;$('pricebox').style.display=t==='story'?'none':'block';$('stayhint').style.display=t==='stay'?'block':'none'};
+async function shrink(file,max=1600){
+  const bmp=await createImageBitmap(file);
+  const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Could not read that photo')),'image/jpeg',0.8));
+}
+const T=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' is taking too long. Check your internet connection and try again.')),ms))]);
 $('save').onclick=async()=>{
   if(!user){$('auth').showModal();return}
   if(!pin){$('pinhint').textContent='Drop a pin on the map first.';return}
   const title=$('ftitle').value.trim();if(!title){$('ftitle').focus();return}
   const type=$('ftype').value,ll=pin.getLatLng(),f=$('fvid').files[0],btn=$('save');
   if(f&&f.size>50*1024*1024){$('pinhint').textContent='Video is over 50 MB. Choose a shorter clip.';return}
-  btn.disabled=true;btn.textContent='Publishing…';
+  btn.disabled=true;btn.textContent='Publishing…';$('pubmsg').textContent='';
   try{
+    await T(sb.auth.getSession(),10000,'Login check');
+    const photo_paths=[],pics=[...$('fpic').files].slice(0,3);
+    for(let i=0;i<pics.length;i++){
+      btn.textContent=`Uploading photo ${i+1} of ${pics.length}…`;
+      const blob=await shrink(pics[i]);
+      const path=`${user.id}/${Date.now()}-${i}.jpg`;
+      const {error:pe}=await T(sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg'}),60000,'Photo upload');
+      if(pe)throw pe;
+      photo_paths.push(path);
+    }
+    btn.textContent='Publishing…';
     let video_path=null;
     if(f){
       const ext=(f.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
       video_path=`${user.id}/${Date.now()}.${ext}`;
-      const {error:ue}=await sb.storage.from('videos').upload(video_path,f,{contentType:f.type});
+      const {error:ue}=await T(sb.storage.from('videos').upload(video_path,f,{contentType:f.type}),120000,'Video upload');
       if(ue)throw ue;
     }
     const price=type!=='story'&&$('fprice').value!==''?Number($('fprice').value):null;
-    const {error}=await sb.from('posts').insert({type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path});
+    const {error}=await T(sb.from('posts').insert({type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path,photo_paths}),20000,'Saving the post');
     if(error)throw error;
     closeForm();await load();
-  }catch(e){$('pinhint').textContent='Could not publish: '+(e.message||'unknown error')}
+  }catch(e){const m='Could not publish: '+(e.message||'unknown error');$('pinhint').textContent=m;$('pubmsg').textContent=m}
   finally{btn.disabled=false;btn.textContent='Publish'}
 };
 load();
