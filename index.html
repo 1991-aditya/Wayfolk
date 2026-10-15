@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pathik – stay with locals, eat like locals</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
@@ -37,6 +39,14 @@ aside{border-left:1px solid var(--line);overflow:auto;padding:12px;background:#f
 .meta{margin-top:6px;font-weight:600}
 .empty{color:#47585f;padding:20px 4px;line-height:1.5}
 video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#000}
+.dot span{display:block;width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.cm{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;min-width:240px}
+.cmt{margin:8px 0;line-height:1.4;word-break:break-word}
+.cmt.reply{margin-left:14px;padding-left:8px;border-left:2px solid var(--line)}
+.cmeta{font-size:12px;color:#47585f}
+.cact{display:flex;gap:12px}
+button.link{background:none;border:0;color:var(--story);padding:2px 0;font-size:13px;font-weight:600}
+.cform{margin-top:6px}.cform textarea{margin-bottom:6px}
 .thumb{width:100%;height:120px;object-fit:cover;border-radius:8px;margin:8px 0 2px}
 .pics{display:flex;gap:6px;margin-top:8px}.pics img{width:88px;height:88px;object-fit:cover;border-radius:8px;display:block}
 .del{margin-top:8px;background:#fff;color:var(--food);border-color:var(--food);padding:4px 10px}
@@ -103,6 +113,7 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
 <script>
 const sb=supabase.createClient('https://fdgcndmgaomsorwnvgtv.supabase.co','sb_publishable_3GO5xaV509MPbt6_YsaSYQ_ERO1sLkK');
@@ -116,16 +127,18 @@ let filter='all';
 /* ---- map ---- */
 const map=L.map('map',{minZoom:2,worldCopyJump:true}).setView([22,30],2);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
-const layer=L.layerGroup().addTo(map);
+const layer=L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true}).addTo(map);
 
 function render(){
   layer.clearLayers();
-  const b=map.getBounds(),vis=[];
+  const b=map.getBounds(),vis=[],ms=[];
   posts.filter(p=>filter==='all'||p.type===filter).forEach(p=>{
-    L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:2,fillColor:COLORS[p.type],fillOpacity:1}).addTo(layer).on('click',()=>show(p));
+    ms.push(L.marker([p.lat,p.lng],{icon:L.divIcon({className:'dot',html:`<span style="background:${COLORS[p.type]}"></span>`,iconSize:[18,18]})}).on('click',()=>show(p)));
     if(b.contains([p.lat,p.lng]))vis.push(p);
   });
-  $('list').innerHTML=vis.length?vis.map(cardHtml).join(''):'<div class="empty">Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
+  layer.addLayers(ms);
+  const shown=vis.slice(0,50);
+  $('list').innerHTML=vis.length?shown.map(cardHtml).join('')+(vis.length>shown.length?`<div class="empty">Showing ${shown.length} of ${vis.length} places here. Zoom in to see the rest.</div>`:''):'<div class="empty">Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
   document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(posts.find(p=>p.id===c.dataset.id)));
 }
 const photoUrl=x=>sb.storage.from('photos').getPublicUrl(x).data.publicUrl;
@@ -133,6 +146,69 @@ const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${es
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
 const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
+let cur=null;
+function openAuth(msg){$('amsg').textContent=msg||'';$('auth').showModal()}
+async function loadComments(p,box,pop){
+  box.textContent='Loading comments…';
+  try{
+    const {data,error}=await T(sb.from('comments').select('*').eq('post_id',p.id).order('created_at').limit(200),15000,'Comments');
+    if(error)throw error;
+    drawComments(p,box,pop,data||[]);
+  }catch(e){box.textContent='Could not load comments. '+(e.message||'')}
+  pop.update();
+}
+function composer(p,box,pop,parentId){
+  const w=document.createElement('div');w.className='cform';
+  const ta=document.createElement('textarea');ta.rows=2;ta.maxLength=500;ta.placeholder=parentId?'Write a reply…':'Add a comment…';
+  const b=document.createElement('button');b.textContent='Post';
+  const msg=document.createElement('div');msg.className='hint';
+  b.onclick=async()=>{
+    const body=ta.value.trim();if(!body)return;
+    b.disabled=true;
+    const {error}=await sb.from('comments').insert({post_id:p.id,parent_id:parentId||null,body});
+    b.disabled=false;
+    if(error){msg.textContent='Could not post: '+error.message;return}
+    loadComments(p,box,pop);
+  };
+  w.append(ta,b,msg);return w;
+}
+function drawComments(p,box,pop,list){
+  box.textContent='';
+  const h=document.createElement('strong');h.textContent=`Comments (${list.length})`;box.appendChild(h);
+  const row=(c,isReply)=>{
+    const d=document.createElement('div');d.className='cmt'+(isReply?' reply':'');
+    const who=c.user_id===p.user_id?'Post author':(user&&c.user_id===user.id?'You':'Traveler '+c.user_id.slice(0,4));
+    const meta=document.createElement('div');meta.className='cmeta';meta.textContent=who+' · '+new Date(c.created_at).toLocaleDateString();
+    const t=document.createElement('div');t.textContent=c.body;
+    const act=document.createElement('div');act.className='cact';
+    if(!isReply){
+      const r=document.createElement('button');r.className='link';r.textContent='Reply';
+      r.onclick=()=>{
+        if(!user){openAuth('Log in to reply.');return}
+        if(d.querySelector('.cform'))return;
+        d.appendChild(composer(p,box,pop,c.id));pop.update();
+      };
+      act.appendChild(r);
+    }
+    if(user&&c.user_id===user.id){
+      const x=document.createElement('button');x.className='link';x.textContent='Delete';
+      x.onclick=async()=>{
+        if(!confirm('Delete this comment?'))return;
+        const {error}=await sb.from('comments').delete().eq('id',c.id);
+        if(error){alert('Could not delete: '+error.message);return}
+        loadComments(p,box,pop);
+      };
+      act.appendChild(x);
+    }
+    d.append(meta,t,act);return d;
+  };
+  list.filter(c=>!c.parent_id).forEach(c=>{
+    box.appendChild(row(c,false));
+    list.filter(r=>r.parent_id===c.id).forEach(r=>box.appendChild(row(r,true)));
+  });
+  if(user){box.appendChild(composer(p,box,pop,null))}
+  else{const b=document.createElement('button');b.className='ghost';b.style.marginTop='8px';b.textContent='Log in to comment';b.onclick=()=>openAuth('Log in to comment.');box.appendChild(b)}
+}
 function show(p){
   const el=document.createElement('div');
   el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
@@ -141,7 +217,9 @@ function show(p){
       const im=document.createElement('img');im.src=photoUrl(x);im.alt=p.title;im.loading='lazy';a.appendChild(im);g.appendChild(a)});el.appendChild(g)}
   if(p.video_path){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl;el.appendChild(v)}
   if(user&&p.user_id===user.id){const d=document.createElement('button');d.className='del';d.textContent='Delete my post';d.onclick=()=>del(p);el.appendChild(d)}
-  L.popup({maxWidth:300}).setLatLng([p.lat,p.lng]).setContent(el).openOn(map);
+  const box=document.createElement('div');box.className='cm';el.appendChild(box);
+  const pop=L.popup({maxWidth:320,maxHeight:440}).setLatLng([p.lat,p.lng]).setContent(el).openOn(map);
+  cur={p,box,pop};loadComments(p,box,pop);
 }
 async function del(p){
   if(!confirm('Delete this post?'))return;
@@ -173,6 +251,7 @@ $('sf').onsubmit=async e=>{e.preventDefault();const q=$('q').value.trim();if(!q)
 function paintAuth(){$('who').textContent=user?user.email:'';$('authbtn').textContent=user?'Log out':'Log in'}
 sb.auth.getSession().then(({data})=>{user=data.session?.user||null;paintAuth();render()});
 sb.auth.onAuthStateChange((ev,s)=>{user=s?.user||null;paintAuth();render();
+  if(cur&&map.hasLayer(cur.pop))setTimeout(()=>loadComments(cur.p,cur.box,cur.pop),0);
   if(ev==='PASSWORD_RECOVERY'){$('auth').close();$('npmsg').textContent='';$('newpw').showModal()}});
 $('authbtn').onclick=()=>{if(user){sb.auth.signOut()}else{$('amsg').textContent='';$('auth').showModal()}};
 $('aclose').onclick=()=>$('auth').close();
