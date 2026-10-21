@@ -47,6 +47,14 @@ video{width:100%;border-radius:8px;margin-top:8px;max-height:220px;background:#0
 .cact{display:flex;gap:12px}
 button.link{background:none;border:0;color:var(--story);padding:2px 0;font-size:13px;font-weight:600}
 .cform{margin-top:6px}.cform textarea{margin-bottom:6px}
+.logo{display:flex;align-items:center;gap:2px}
+.fp ellipse{opacity:0;animation:fp 2.4s linear infinite}
+@keyframes fp{0%{opacity:0}10%{opacity:.85}65%{opacity:.25}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.fp ellipse{animation:none;opacity:.45}}
+.prev{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.pv{position:relative}.pv img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block}
+.rm{position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;padding:0;line-height:1;font-size:18px;background:var(--food);border:2px solid #fff}
+input[type=range]{padding:0}
 .thumb{width:100%;height:120px;object-fit:cover;border-radius:8px;margin:8px 0 2px}
 .pics{display:flex;gap:6px;margin-top:8px}.pics img{width:88px;height:88px;object-fit:cover;border-radius:8px;display:block}
 .del{margin-top:8px;background:#fff;color:var(--food);border-color:var(--food);padding:4px 10px}
@@ -62,7 +70,28 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
 </head>
 <body>
 <header>
-  <h1>Pathik</h1>
+  <h1 class="logo" aria-label="Pathik">
+    <svg class="walk" viewBox="0 0 94 40" width="94" height="40" aria-hidden="true" focusable="false">
+      <g class="fp" fill="#14232b">
+        <ellipse cx="6" cy="35" rx="3.4" ry="1.7" style="animation-delay:2s"/>
+        <ellipse cx="17" cy="32" rx="3.4" ry="1.7" style="animation-delay:1.6s"/>
+        <ellipse cx="28" cy="35" rx="3.4" ry="1.7" style="animation-delay:1.2s"/>
+        <ellipse cx="39" cy="32" rx="3.4" ry="1.7" style="animation-delay:.8s"/>
+        <ellipse cx="50" cy="35" rx="3.4" ry="1.7" style="animation-delay:.4s"/>
+        <ellipse cx="61" cy="32" rx="3.4" ry="1.7" style="animation-delay:0s"/>
+      </g>
+      <ellipse cx="80" cy="37.5" rx="11" ry="2" fill="#000" opacity=".18"/>
+      <g stroke="#000" stroke-linecap="round" fill="none" stroke-width="3.6">
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -1.2;0 0" dur=".45s" repeatCount="indefinite"/>
+        <circle cx="80" cy="7" r="4.2" fill="#000" stroke="none"/>
+        <line x1="80" y1="12" x2="80" y2="24"/>
+        <line x1="80" y1="14" x2="80" y2="23"><animateTransform attributeName="transform" type="rotate" values="-30 80 14;30 80 14;-30 80 14" dur=".9s" repeatCount="indefinite"/></line>
+        <line x1="80" y1="14" x2="80" y2="23"><animateTransform attributeName="transform" type="rotate" values="30 80 14;-30 80 14;30 80 14" dur=".9s" repeatCount="indefinite"/></line>
+        <line x1="80" y1="24" x2="80" y2="35"><animateTransform attributeName="transform" type="rotate" values="28 80 24;-28 80 24;28 80 24" dur=".9s" repeatCount="indefinite"/></line>
+        <line x1="80" y1="24" x2="80" y2="35"><animateTransform attributeName="transform" type="rotate" values="-28 80 24;28 80 24;-28 80 24" dur=".9s" repeatCount="indefinite"/></line>
+      </g>
+    </svg><span aria-hidden="true">Pathik</span>
+  </h1>
   <form class="search" id="sf" role="search"><input id="q" placeholder="Search a place, e.g. Hampi, Lisbon, Kyoto" aria-label="Search a place"><button>Search</button></form>
   <div class="chips" id="chips">
     <button class="chip" data-t="all" aria-pressed="true">All</button>
@@ -80,7 +109,7 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
 </main>
 
 <section id="form" aria-label="Share a place">
-  <h2 style="margin:0">Share a place</h2>
+  <h2 style="margin:0" id="formtitle">Share a place</h2>
   <p class="hint" id="pinhint">Tap the map to drop a pin.</p>
   <button class="ghost" id="locate" type="button" style="margin-top:8px">Use my current location</button>
   <label for="ftype">What are you sharing?</label>
@@ -90,7 +119,19 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   <label for="ftext">Details</label><textarea id="ftext" rows="4" maxlength="800"></textarea>
   <div id="pricebox" style="display:none"><label for="fprice">Price in USD (per night or per meal)</label><input id="fprice" type="number" min="0" step="1"></div>
   <label for="fpic">Photos (optional, up to 3)</label><input id="fpic" type="file" accept="image/*" multiple>
-  <label for="fvid">Video (optional, max 50 MB, mp4 or webm)</label><input id="fvid" type="file" accept="video/mp4,video/webm,video/quicktime">
+  <div class="prev" id="picprev"></div>
+  <label for="fvid">Video (optional, up to 60 seconds)</label><input id="fvid" type="file" accept="video/*">
+  <div id="oldvid" style="display:none">
+    <video id="ovprev" controls playsinline preload="metadata"></video>
+    <div class="row"><button type="button" class="ghost" id="ovrm">Remove current video</button></div>
+  </div>
+  <div id="vidprev" style="display:none">
+    <video id="vprev" controls playsinline preload="metadata"></video>
+    <p class="hint" id="vinfo"></p>
+    <label for="vstart">Start of clip</label><input id="vstart" type="range" min="0" step="0.5" value="0">
+    <label for="vend">End of clip</label><input id="vend" type="range" min="0" step="0.5" value="0">
+    <div class="row"><button type="button" class="ghost" id="vplay">Preview clip</button><button type="button" class="ghost" id="vrm">Remove video</button></div>
+  </div>
   <div class="row"><button id="save">Publish</button><button class="ghost" id="cancel" type="button">Cancel</button></div>
   <p class="hint" id="pubmsg" role="alert"></p>
 </section>
@@ -216,7 +257,11 @@ function show(p){
     p.photo_paths.forEach(x=>{const a=document.createElement('a');a.href=photoUrl(x);a.target='_blank';a.rel='noopener';
       const im=document.createElement('img');im.src=photoUrl(x);im.alt=p.title;im.loading='lazy';a.appendChild(im);g.appendChild(a)});el.appendChild(g)}
   if(p.video_path){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl;el.appendChild(v)}
-  if(user&&p.user_id===user.id){const d=document.createElement('button');d.className='del';d.textContent='Delete my post';d.onclick=()=>del(p);el.appendChild(d)}
+  if(user&&p.user_id===user.id){
+    const r=document.createElement('div');r.className='row';r.style.marginTop='8px';
+    const e=document.createElement('button');e.className='ghost';e.style.padding='4px 10px';e.textContent='Edit my post';e.onclick=()=>startEdit(p);
+    const d=document.createElement('button');d.className='del';d.style.marginTop='0';d.textContent='Delete my post';d.onclick=()=>del(p);
+    r.append(e,d);el.appendChild(r)}
   const box=document.createElement('div');box.className='cm';el.appendChild(box);
   const pop=L.popup({maxWidth:320,maxHeight:440}).setLatLng([p.lat,p.lng]).setContent(el).openOn(map);
   cur={p,box,pop};loadComments(p,box,pop);
@@ -282,10 +327,10 @@ $('login').onclick=()=>doAuth(false);
 $('signup').onclick=()=>doAuth(true);
 
 /* ---- share form ---- */
-$('add').onclick=()=>{if(!user){$('amsg').textContent='Log in first to share a place.';$('auth').showModal();return}formOpen=true;$('form').classList.add('open')};
-$('cancel').onclick=closeForm;
-function closeForm(){formOpen=false;$('form').classList.remove('open');if(pin){map.removeLayer(pin);pin=null}
-  ['ftitle','ftext','fprice','fvid','fpic'].forEach(i=>$(i).value='');$('pinhint').textContent='Tap the map to drop a pin.'}
+$('add').onclick=()=>{if(!user){$('amsg').textContent='Log in first to share a place.';$('auth').showModal();return}if(editing)closeForm(true);formOpen=true;$('form').classList.add('open')};
+$('cancel').onclick=()=>closeForm(true);
+function closeForm(discard){formOpen=false;$('form').classList.remove('open');if(pin){map.removeLayer(pin);pin=null}
+  ['ftitle','ftext','fprice'].forEach(i=>$(i).value='');resetMedia(discard===true);editing=null;$('formtitle').textContent='Share a place';$('save').textContent='Publish';$('pubmsg').textContent='';$('pinhint').textContent='Tap the map to drop a pin.'}
 function hintPin(){const ll=pin.getLatLng();$('pinhint').textContent=`Pin set at ${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}. Drag the pin to adjust.`}
 function setPin(ll){if(pin)map.removeLayer(pin);pin=L.marker(ll,{draggable:true}).addTo(map);pin.on('dragend',hintPin);hintPin()}
 map.on('click',e=>{if(!formOpen)return;setPin(e.latlng)});
@@ -311,39 +356,163 @@ async function shrink(file,max=1600){
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Could not read that photo')),'image/jpeg',0.8));
 }
 const T=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' is taking too long. Check your internet connection and try again.')),ms))]);
+let pics=[],vid=null,oldVid=null,editing=null,vt={start:0,end:0,dur:0};
+const MAXCLIP=60;
+const fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
+function resetMedia(discard){
+  if(discard){
+    const ps=pics.filter(f=>!f._existing).map(f=>f._path).filter(Boolean);
+    if(ps.length)sb.storage.from('photos').remove(ps);
+    if(vid&&vid._path)sb.storage.from('videos').remove([vid._path]);
+  }
+  pics=[];vid=null;oldVid=null;drawPics();drawVid();$('fpic').value='';$('fvid').value='';
+}
+function drawPics(){
+  const box=$('picprev');box.textContent='';
+  pics.forEach((f,i)=>{
+    const w=document.createElement('div');w.className='pv';
+    const im=document.createElement('img');im.src=f._existing?photoUrl(f._path):URL.createObjectURL(f);im.alt='Selected photo '+(i+1);
+    const x=document.createElement('button');x.type='button';x.className='rm';x.textContent='×';x.setAttribute('aria-label','Remove photo '+(i+1));
+    x.onclick=()=>{if(f._path&&!f._existing)sb.storage.from('photos').remove([f._path]);pics.splice(i,1);drawPics()};
+    w.append(im,x);box.appendChild(w);
+  });
+}
+$('fpic').onchange=e=>{
+  const room=3-pics.length,all=[...e.target.files];
+  pics.push(...all.slice(0,Math.max(0,room)));
+  $('pubmsg').textContent=all.length>room?'You can add up to 3 photos. Remove one to add another.':'';
+  e.target.value='';drawPics();
+};
+function drawVid(){
+  $('vidprev').style.display=vid?'block':'none';
+  $('oldvid').style.display=(!vid&&oldVid)?'block':'none';
+  const v=$('vprev'),o=$('ovprev');
+  if(!vid){v.removeAttribute('src');v.load()}
+  if(!vid&&oldVid){o.src=sb.storage.from('videos').getPublicUrl(oldVid).data.publicUrl}else{o.removeAttribute('src');o.load()}
+}
+$('ovrm').onclick=()=>{oldVid=null;drawVid()};
+function startEdit(p){
+  if(!user||p.user_id!==user.id)return;
+  if(editing||formOpen)closeForm(true);
+  map.closePopup();
+  editing=p;formOpen=true;$('form').classList.add('open');
+  $('formtitle').textContent='Edit your post';$('save').textContent='Save changes';
+  $('ftype').value=p.type;$('ftype').onchange();
+  $('ftitle').value=p.title;$('ftext').value=p.body||'';$('fprice').value=p.price==null?'':p.price;
+  setPin(L.latLng(p.lat,p.lng));map.setView([p.lat,p.lng],Math.max(map.getZoom(),14));
+  pics=(p.photo_paths||[]).map(x=>({_existing:true,_path:x}));drawPics();
+  oldVid=p.video_path||null;drawVid();
+}
+function syncV(){
+  if(vt.end-vt.start<1){vt.end=Math.min(vt.dur,vt.start+1);vt.start=Math.max(0,vt.end-1)}
+  $('vstart').value=vt.start;$('vend').value=vt.end;
+  $('vinfo').textContent=`Video is ${fmt(vt.dur)} long. Sharing ${fmt(vt.start)} to ${fmt(vt.end)} (${Math.round(vt.end-vt.start)} s, max ${MAXCLIP} s).`;
+}
+$('fvid').onchange=e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  vid=f;oldVid=null;const v=$('vprev');v.src=URL.createObjectURL(f);
+  v.onloadedmetadata=()=>{
+    const d=v.duration;
+    if(!isFinite(d)||d<1){$('pubmsg').textContent='Could not read that video. Please choose another.';vid=null;drawVid();return}
+    vt={start:0,end:Math.min(d,MAXCLIP),dur:d};
+    $('vstart').max=d;$('vend').max=d;syncV();
+  };
+  v.onerror=()=>{$('pubmsg').textContent='Could not read that video. Please choose another.';vid=null;drawVid()};
+  drawVid();
+};
+$('vstart').oninput=e=>{vt.start=+e.target.value;if(vt.end-vt.start>MAXCLIP)vt.end=vt.start+MAXCLIP;if(vt.end<=vt.start)vt.end=Math.min(vt.dur,vt.start+1);syncV();$('vprev').currentTime=vt.start};
+$('vend').oninput=e=>{vt.end=+e.target.value;if(vt.end-vt.start>MAXCLIP)vt.start=vt.end-MAXCLIP;if(vt.end<=vt.start)vt.start=Math.max(0,vt.end-1);syncV();$('vprev').currentTime=vt.start};
+$('vplay').onclick=()=>{const v=$('vprev');v.currentTime=vt.start;v.play();v.ontimeupdate=()=>{if(v.currentTime>=vt.end){v.pause();v.ontimeupdate=null}}};
+$('vrm').onclick=()=>{if(vid&&vid._path)sb.storage.from('videos').remove([vid._path]);vid=null;oldVid=editing?(editing.video_path||null):null;drawVid()};
+
+function clipVideo(file,start,end,prog){
+  return new Promise((res,rej)=>{
+    if(!window.MediaRecorder||!HTMLVideoElement.prototype.captureStream)return rej(new Error('This browser cannot trim videos. Please choose a video of 60 seconds or less.'));
+    const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+    if(!mime)return rej(new Error('This browser cannot trim videos. Please choose a shorter video.'));
+    const v=document.createElement('video');v.src=URL.createObjectURL(file);v.playsInline=true;v.preload='auto';
+    let rec,done=false;
+    const finish=()=>{if(done)return;done=true;v.ontimeupdate=null;v.onended=null;if(rec&&rec.state!=='inactive')rec.stop()};
+    const begin=()=>{
+      try{
+        rec=new MediaRecorder(v.captureStream(),{mimeType:mime,videoBitsPerSecond:1500000});
+        const chunks=[];
+        rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+        rec.onstop=()=>{v.pause();URL.revokeObjectURL(v.src);chunks.length?res(new Blob(chunks,{type:'video/webm'})):rej(new Error('Could not prepare the video'))};
+        rec.start(1000);
+        v.ontimeupdate=()=>{prog(Math.max(0,v.currentTime-start));if(v.currentTime>=end)finish()};
+        v.onended=finish;
+        v.play().catch(e=>{finish();rej(e)});
+      }catch(e){rej(e)}
+    };
+    v.onerror=()=>rej(new Error('Could not read that video'));
+    v.onloadedmetadata=()=>{if(start>0.05){v.onseeked=()=>{v.onseeked=null;begin()};v.currentTime=start}else begin()};
+  });
+}
+
 $('save').onclick=async()=>{
   if(!user){$('auth').showModal();return}
   if(!pin){$('pinhint').textContent='Drop a pin on the map first.';return}
   const title=$('ftitle').value.trim();if(!title){$('ftitle').focus();return}
-  const type=$('ftype').value,ll=pin.getLatLng(),f=$('fvid').files[0],btn=$('save');
-  if(f&&f.size>50*1024*1024){$('pinhint').textContent='Video is over 50 MB. Choose a shorter clip.';return}
-  btn.disabled=true;btn.textContent='Publishing…';$('pubmsg').textContent='';
+  const type=$('ftype').value,ll=pin.getLatLng(),btn=$('save');
+  btn.disabled=true;btn.textContent=editing?'Saving…':'Publishing…';$('pubmsg').textContent='';
   try{
     await T(sb.auth.getSession(),10000,'Login check');
-    const photo_paths=[],pics=[...$('fpic').files].slice(0,3);
+    const photo_paths=[];
     for(let i=0;i<pics.length;i++){
-      btn.textContent=`Uploading photo ${i+1} of ${pics.length}…`;
-      const blob=await shrink(pics[i]);
-      const path=`${user.id}/${Date.now()}-${i}.jpg`;
-      const {error:pe}=await T(sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg'}),60000,'Photo upload');
-      if(pe)throw pe;
-      photo_paths.push(path);
+      const f=pics[i];
+      if(!f._path){
+        btn.textContent=`Uploading photo ${i+1} of ${pics.length}…`;
+        const blob=await shrink(f);
+        const path=`${user.id}/${Date.now()}-${i}.jpg`;
+        const {error:pe}=await T(sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg'}),60000,'Photo upload');
+        if(pe)throw pe;
+        f._path=path;
+      }
+      photo_paths.push(f._path);
     }
-    btn.textContent='Publishing…';
     let video_path=null;
-    if(f){
-      const ext=(f.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
-      video_path=`${user.id}/${Date.now()}.${ext}`;
-      const {error:ue}=await T(sb.storage.from('videos').upload(video_path,f,{contentType:f.type}),120000,'Video upload');
-      if(ue)throw ue;
-    }
+    if(vid){
+      if(!vid._path){
+        const okType=['video/mp4','video/webm','video/quicktime'].includes(vid.type);
+        const whole=vt.start<0.2&&vt.end>vt.dur-0.2&&vid.size<=50*1024*1024&&okType;
+        let blob=vid,ctype=vid.type,ext=(vid.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
+        if(!whole){
+          const key=vt.start+'-'+vt.end;
+          if(vid._clipKey!==key){
+            const total=Math.round(vt.end-vt.start);
+            vid._clip=await clipVideo(vid,vt.start,vt.end,x=>{btn.textContent=`Preparing video ${Math.round(x)} of ${total} s…`});
+            vid._clipKey=key;
+          }
+          blob=vid._clip;ctype='video/webm';ext='webm';
+        }
+        btn.textContent='Uploading video…';
+        const path=`${user.id}/${Date.now()}.${ext}`;
+        const {error:ue}=await T(sb.storage.from('videos').upload(path,blob,{contentType:ctype}),120000,'Video upload');
+        if(ue)throw ue;
+        vid._path=path;
+      }
+      video_path=vid._path;
+    }else if(oldVid){video_path=oldVid}
+    btn.textContent=editing?'Saving…':'Publishing…';
     const price=type!=='story'&&$('fprice').value!==''?Number($('fprice').value):null;
-    const {error}=await T(sb.from('posts').insert({type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path,photo_paths}),20000,'Saving the post');
-    if(error)throw error;
+    const row={type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path,photo_paths};
+    if(editing){
+      const {data,error}=await T(sb.from('posts').update(row).eq('id',editing.id).select('id'),20000,'Saving the changes');
+      if(error)throw error;
+      if(!data||!data.length)throw new Error('You can only edit your own posts. Please log in again.');
+      const dropP=(editing.photo_paths||[]).filter(x=>!photo_paths.includes(x));
+      if(dropP.length)sb.storage.from('photos').remove(dropP);
+      if(editing.video_path&&editing.video_path!==video_path)sb.storage.from('videos').remove([editing.video_path]);
+    }else{
+      const {error}=await T(sb.from('posts').insert(row),20000,'Saving the post');
+      if(error)throw error;
+    }
     closeForm();await load();
-  }catch(e){const m='Could not publish: '+(e.message||'unknown error');$('pinhint').textContent=m;$('pubmsg').textContent=m}
-  finally{btn.disabled=false;btn.textContent='Publish'}
+  }catch(e){const m='Could not publish: '+(e.message||'unknown error')+' Your photos and video are still here. Tap the button again to retry, or remove any of them.';$('pinhint').textContent=m;$('pubmsg').textContent=m}
+  finally{btn.disabled=false;btn.textContent=editing?'Save changes':'Publish'}
 };
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){const w=document.querySelector('.walk');if(w&&w.pauseAnimations)w.pauseAnimations()}
 load();
 </script>
 </body>
