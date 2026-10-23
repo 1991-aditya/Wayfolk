@@ -18,6 +18,17 @@ header{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:
 h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em}
 .search{flex:1;min-width:200px;display:flex;gap:6px}
 .short{display:none}
+#route{position:fixed;left:8px;bottom:8px;width:min(380px,calc(100vw - 16px));max-height:60vh;overflow:auto;background:#fff;border:1px solid var(--ink);border-radius:14px;padding:12px;z-index:1200;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+#route[hidden]{display:none}
+.rhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.rhead strong{line-height:1.3}.rhead button{padding:2px 10px}
+.rmodes{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.mode{background:#fff;color:var(--ink);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
+.mode[aria-pressed=true]{background:var(--ink);color:#fff}
+.rsum{margin:6px 0}.rsum .big{font-size:22px;font-weight:800}
+.rbody ol{padding-left:20px;margin:8px 0}.rbody li{margin:4px 0;line-height:1.35}
+.rbody summary{cursor:pointer;font-weight:600;margin-top:6px}
+.gm{display:inline-block;margin-top:8px;padding:8px 14px;border-radius:var(--r);background:var(--story);color:#fff;font-weight:600;text-decoration:none}
 .sw{position:relative;flex:1;min-width:0}
 .sug{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--ink);border-radius:var(--r);max-height:300px;overflow:auto;z-index:1500;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sug button{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:#fff;color:var(--ink);border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 12px;font-weight:600}
@@ -176,6 +187,18 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   <div class="row" style="margin-top:8px"><button class="ghost" id="forgot" type="button">Forgot password?</button></div>
 </dialog>
 
+<section id="route" aria-label="Directions" hidden>
+  <div class="rhead"><strong id="rtitle"></strong><button id="rclose" class="ghost" type="button" aria-label="Close directions">✕</button></div>
+  <div class="rmodes">
+    <button class="mode" data-m="car" aria-pressed="true">Car</button>
+    <button class="mode" data-m="foot" aria-pressed="false">Walk</button>
+    <button class="mode" data-m="bike" aria-pressed="false">Bike</button>
+    <button class="mode" data-m="transit" aria-pressed="false">Bus / Train</button>
+  </div>
+  <div id="rbody" class="rbody" aria-live="polite"></div>
+  <p class="hint">Estimates only, without live traffic. Routes © OpenStreetMap contributors. Your start point is sent to a public routing server (FOSSGIS).</p>
+</section>
+
 <dialog id="lb" aria-label="Photo and video viewer"><button class="ghost" id="lbclose" type="button">Close ✕</button><div id="lbbody"></div></dialog>
 
 <dialog id="newpw">
@@ -219,6 +242,78 @@ const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${es
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
 const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
+const RT={car:{color:'#c8452d',path:'routed-car',gm:'driving'},foot:{color:'#1e8a8a',path:'routed-foot',gm:'walking'},bike:{color:'#e08e1b',path:'routed-bike',gm:'bicycling'},transit:{gm:'transit'}};
+let dest=null,origin=null,rmode='car',rcache={},pickStart=false,lastReq=0;
+const routeLayer=L.layerGroup().addTo(map);
+const fmtDist=m=>m<1000?(Math.round(m/10)*10)+' m':(m/1000).toFixed(m<10000?1:0)+' km';
+const fmtTime=sec=>{const m=Math.max(1,Math.round(sec/60));if(m<60)return m+' min';const h=Math.floor(m/60);if(h>=24)return Math.floor(h/24)+' d '+(h%24)+' h';return h+' h'+(m%60?' '+(m%60)+' min':'')};
+function addGm(b,m){
+  const a=document.createElement('a');a.className='gm';a.target='_blank';a.rel='noopener';
+  a.href='https://www.google.com/maps/dir/?api=1'+(origin?'&origin='+origin.lat+','+origin.lng:'')+'&destination='+dest.lat+','+dest.lng+'&travelmode='+RT[m].gm;
+  a.textContent=m==='transit'?'See bus and train options in Google Maps':'Open in Google Maps for live navigation';
+  b.appendChild(a);
+}
+function say(msg){const b=$('rbody');b.textContent='';const p=document.createElement('p');p.textContent=msg;b.appendChild(p);return b}
+function needStart(msg){origin=null;pickStart=true;const b=say(msg+' Tap the map to choose your starting point.');addGm(b,rmode==='transit'?'transit':rmode)}
+function openRoute(p){
+  dest=p;rcache={};routeLayer.clearLayers();map.closePopup();
+  $('rtitle').textContent='Directions to '+p.title;$('route').hidden=false;say('Finding your location…');
+  if(!navigator.geolocation){needStart('This browser cannot share your location.');return}
+  navigator.geolocation.getCurrentPosition(pos=>{origin=L.latLng(pos.coords.latitude,pos.coords.longitude);pickStart=false;setMode(rmode)},
+    err=>needStart(err.code===1?'Location permission was denied.':'Could not get your location.'),{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+}
+function setMode(m){
+  rmode=m;document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
+  routeLayer.clearLayers();
+  if(m==='transit'){const b=say('Bus and train times need live transit data, which Pathik does not have yet. Google Maps does, so open it below for timings and routes.');addGm(b,'transit');return}
+  computeRoute(m);
+}
+async function computeRoute(m){
+  if(!origin){needStart('I need a starting point.');return}
+  if(rcache[m]){showRoute(m,rcache[m]);return}
+  say('Finding the best route…');
+  const wait=Math.max(0,1100-(Date.now()-lastReq));await new Promise(r=>setTimeout(r,wait));lastReq=Date.now();
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+  try{
+    const u='https://routing.openstreetmap.de/'+RT[m].path+'/route/v1/driving/'+origin.lng+','+origin.lat+';'+dest.lng+','+dest.lat+'?overview=full&geometries=geojson&steps=true';
+    const j=await (await fetch(u,{signal:ctl.signal})).json();
+    if(j.code!=='Ok'||!j.routes||!j.routes.length){if(rmode===m){const b=say('No route found for this mode. Try another one.');addGm(b,m)}return}
+    rcache[m]=j.routes[0];if(rmode===m)showRoute(m,j.routes[0]);
+  }catch{if(rmode===m){const b=say('Could not get a route. Check your internet and try again.');addGm(b,m)}}
+  finally{clearTimeout(to)}
+}
+function stepText(st){
+  const mv=st.maneuver||{},t=mv.type,mod=mv.modifier||'',on=st.name?' onto '+st.name:'';
+  if(t==='depart')return 'Start'+(st.name?' on '+st.name:'');
+  if(t==='arrive')return 'Arrive at the destination';
+  if(t==='roundabout'||t==='rotary')return 'At the roundabout, take exit '+(mv.exit||'')+on;
+  if(mod==='uturn')return 'Make a U-turn'+on;
+  if(mod==='straight'||!mod)return 'Continue'+on;
+  return 'Turn '+mod+on;
+}
+function showRoute(m,rt){
+  routeLayer.clearLayers();
+  const pts=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
+  const line=L.polyline(pts,{color:RT[m].color,weight:6,opacity:.9}).addTo(routeLayer);
+  L.circleMarker(origin,{radius:7,color:'#fff',weight:2,fillColor:'#14232b',fillOpacity:1}).addTo(routeLayer);
+  map.fitBounds(line.getBounds(),{paddingTopLeft:[30,30],paddingBottomRight:[30,260]});
+  const b=$('rbody');b.textContent='';
+  const sum=document.createElement('div');sum.className='rsum';
+  const big=document.createElement('span');big.className='big';big.textContent=fmtTime(rt.duration);
+  sum.append(big,' · '+fmtDist(rt.distance));b.appendChild(sum);
+  if(m!=='car'&&rt.distance>200000){const w=document.createElement('p');w.className='hint';w.textContent='That is a long way. Car or bus / train may suit you better.';b.appendChild(w)}
+  const steps=(rt.legs&&rt.legs[0]&&rt.legs[0].steps)||[];
+  if(steps.length){
+    const d=document.createElement('details'),sm=document.createElement('summary');sm.textContent='Step-by-step ('+steps.length+' steps)';
+    const ol=document.createElement('ol');
+    steps.slice(0,80).forEach(st=>{const li=document.createElement('li');li.textContent=stepText(st)+(st.distance>0?' ('+fmtDist(st.distance)+')':'');ol.appendChild(li)});
+    d.append(sm,ol);b.appendChild(d);
+  }
+  addGm(b,m);
+}
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{if(dest)setMode(b.dataset.m)});
+$('rclose').onclick=()=>{$('route').hidden=true;routeLayer.clearLayers();pickStart=false;dest=null};
+map.on('click',e=>{if(!pickStart||!dest)return;pickStart=false;origin=e.latlng;setMode(rmode==='transit'?'car':rmode)});
 let cur=null;
 function openAuth(msg){$('amsg').textContent=msg||'';$('auth').showModal()}
 async function loadComments(p,box,pop){
@@ -323,6 +418,7 @@ function show(p){
   const el=document.createElement('div');
   el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
   const gl=gallery(p,false);if(gl)el.appendChild(gl);
+  const rb=document.createElement('button');rb.className='ghost';rb.style.marginTop='8px';rb.textContent='Directions';rb.onclick=()=>openRoute(p);el.appendChild(rb);
   if(user&&p.user_id===user.id){
     const r=document.createElement('div');r.className='row';r.style.marginTop='8px';
     const e=document.createElement('button');e.className='ghost';e.style.padding='4px 10px';e.textContent='Edit my post';e.onclick=()=>startEdit(p);
