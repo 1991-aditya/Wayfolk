@@ -55,6 +55,19 @@ button.link{background:none;border:0;color:var(--story);padding:2px 0;font-size:
 .pv{position:relative}.pv img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block}
 .rm{position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;padding:0;line-height:1;font-size:18px;background:var(--food);border:2px solid #fff}
 input[type=range]{padding:0}
+.gal{position:relative;margin-top:8px}
+.gtrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:8px;background:#000}
+.gtrack::-webkit-scrollbar{display:none}
+.gslide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:210px}
+.gslide img,.gslide video{width:100%;height:100%;object-fit:contain;margin:0;border-radius:0;max-height:none;background:#000}
+.gnav{position:absolute;top:calc(50% - 14px);transform:translateY(-50%);width:34px;height:34px;border-radius:50%;padding:0;background:rgba(0,0,0,.55);border:0;font-size:22px;line-height:1}
+.gnav.prev{left:6px}.gnav.next{right:6px}
+.gcount{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:99px}
+.gdots{display:flex;justify-content:center;gap:5px;margin-top:6px}
+.gdots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.gdots i.on{background:var(--ink)}
+#lb{margin:0;padding:0;border:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;background:#000}
+#lb .gal{margin:0}#lb .gslide{height:calc(100vh - 60px)}
+#lbclose{position:fixed;top:10px;left:10px;z-index:5}
 .thumb{width:100%;height:120px;object-fit:cover;border-radius:8px;margin:8px 0 2px}
 .pics{display:flex;gap:6px;margin-top:8px}.pics img{width:88px;height:88px;object-fit:cover;border-radius:8px;display:block}
 .del{margin-top:8px;background:#fff;color:var(--food);border-color:var(--food);padding:4px 10px}
@@ -145,6 +158,8 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   <div class="row"><button id="login">Log in</button><button class="ghost" id="signup">Create account</button><button class="ghost" id="aclose">Close</button></div>
   <div class="row" style="margin-top:8px"><button class="ghost" id="forgot" type="button">Forgot password?</button></div>
 </dialog>
+
+<dialog id="lb" aria-label="Photo and video viewer"><button class="ghost" id="lbclose" type="button">Close ✕</button><div id="lbbody"></div></dialog>
 
 <dialog id="newpw">
   <h2 style="margin:0">Set a new password</h2>
@@ -250,13 +265,47 @@ function drawComments(p,box,pop,list){
   if(user){box.appendChild(composer(p,box,pop,null))}
   else{const b=document.createElement('button');b.className='ghost';b.style.marginTop='8px';b.textContent='Log in to comment';b.onclick=()=>openAuth('Log in to comment.');box.appendChild(b)}
 }
+function gallery(p,big){
+  const items=[...(p.photo_paths||[]).map(x=>({t:'img',u:photoUrl(x)})),...(p.video_path?[{t:'vid',u:sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl}]:[])];
+  if(!items.length)return null;
+  const g=document.createElement('div');g.className='gal';g.jump=()=>{};
+  const tr=document.createElement('div');tr.className='gtrack';tr.tabIndex=0;tr.setAttribute('aria-label','Photos and video. Swipe sideways to see more.');
+  items.forEach((it,i)=>{
+    const sl=document.createElement('div');sl.className='gslide';let m;
+    if(it.t==='img'){m=document.createElement('img');m.src=it.u;m.alt=p.title+' photo '+(i+1);m.loading='lazy';
+      if(!big){m.style.cursor='zoom-in';m.onclick=()=>openLb(p,i)}}
+    else{m=document.createElement('video');m.controls=true;m.playsInline=true;m.preload='metadata';m.src=it.u}
+    sl.appendChild(m);tr.appendChild(sl);
+  });
+  g.appendChild(tr);
+  if(items.length>1){
+    const cnt=document.createElement('div');cnt.className='gcount';
+    const dots=document.createElement('div');dots.className='gdots';items.forEach(()=>dots.appendChild(document.createElement('i')));
+    let tgt=0;
+    const idx=()=>Math.round(tr.scrollLeft/(tr.clientWidth||1));
+    const sync=()=>{const i=idx();tgt=i;cnt.textContent=(i+1)+' / '+items.length;
+      [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+      tr.querySelectorAll('video').forEach(v=>{if(v.parentElement!==tr.children[i])v.pause()})};
+    const go=d=>{tgt=Math.max(0,Math.min(items.length-1,tgt+d));tr.scrollTo({left:tgt*tr.clientWidth,behavior:'smooth'})};
+    const nav=(c,t,l,d)=>{const b=document.createElement('button');b.type='button';b.className='gnav '+c;b.textContent=t;b.setAttribute('aria-label',l);b.onclick=()=>go(d);return b};
+    g.append(nav('prev','‹','Previous',-1),nav('next','›','Next',1),cnt,dots);
+    tr.addEventListener('scroll',()=>{clearTimeout(tr._t);tr._t=setTimeout(sync,60)});
+    tr.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1)});
+    g.jump=i=>{tr.scrollLeft=i*tr.clientWidth;sync()};
+    setTimeout(sync,0);
+  }
+  return g;
+}
+function openLb(p,i){
+  const b=$('lbbody');b.textContent='';const g=gallery(p,true);if(!g)return;
+  b.appendChild(g);$('lb').showModal();requestAnimationFrame(()=>g.jump(i));
+}
+$('lbclose').onclick=()=>$('lb').close();
+$('lb').addEventListener('close',()=>{$('lbbody').textContent=''});
 function show(p){
   const el=document.createElement('div');
   el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
-  if(p.photo_paths&&p.photo_paths.length){const g=document.createElement('div');g.className='pics';
-    p.photo_paths.forEach(x=>{const a=document.createElement('a');a.href=photoUrl(x);a.target='_blank';a.rel='noopener';
-      const im=document.createElement('img');im.src=photoUrl(x);im.alt=p.title;im.loading='lazy';a.appendChild(im);g.appendChild(a)});el.appendChild(g)}
-  if(p.video_path){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=sb.storage.from('videos').getPublicUrl(p.video_path).data.publicUrl;el.appendChild(v)}
+  const gl=gallery(p,false);if(gl)el.appendChild(gl);
   if(user&&p.user_id===user.id){
     const r=document.createElement('div');r.className='row';r.style.marginTop='8px';
     const e=document.createElement('button');e.className='ghost';e.style.padding='4px 10px';e.textContent='Edit my post';e.onclick=()=>startEdit(p);
