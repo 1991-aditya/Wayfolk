@@ -17,6 +17,12 @@ body{font-family:'Bricolage Grotesque',system-ui,sans-serif;color:var(--ink);bac
 header{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em}
 .search{flex:1;min-width:200px;display:flex;gap:6px}
+.short{display:none}
+.sw{position:relative;flex:1;min-width:0}
+.sug{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--ink);border-radius:var(--r);max-height:300px;overflow:auto;z-index:1500;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.sug button{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:#fff;color:var(--ink);border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 12px;font-weight:600}
+.sug button:last-child{border-bottom:0;font-weight:400;color:#47585f}
+.sug button:hover,.sug button.hl{background:#eaf1ef}
 input,select,textarea,button{font:inherit;color:inherit}
 input,select,textarea{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:#fff;width:100%}
 button{cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r);padding:8px 14px;font-weight:600}
@@ -78,6 +84,17 @@ label{display:block;margin:10px 0 4px;font-weight:600}
 .hint{color:#47585f;font-size:13px;margin:6px 0 0;line-height:1.4}
 dialog{border:1px solid var(--ink);border-radius:14px;padding:18px;width:340px;max-width:92vw}
 dialog::backdrop{background:rgba(20,35,43,.5)}
+@media(max-width:760px){
+  header{gap:8px;padding:8px 12px}
+  #add,#authbtn{padding:8px 10px}
+  #add .full{display:none}#add .short{display:inline}
+  .logo{order:1}
+  #add{order:2;margin-left:auto}
+  .who{order:3;max-width:90px}
+  #authbtn{order:4}
+  .search{order:5;flex:1 1 100%}
+  .chips{order:6;flex:1 1 100%;overflow-x:auto}
+}
 @media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:55% 45%}aside{border-left:0;border-top:1px solid var(--line)}}
 </style>
 </head>
@@ -105,14 +122,14 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
       </g>
     </svg><span aria-hidden="true">Pathik</span>
   </h1>
-  <form class="search" id="sf" role="search"><input id="q" placeholder="Search a place, e.g. Hampi, Lisbon, Kyoto" aria-label="Search a place"><button>Search</button></form>
+  <form class="search" id="sf" role="search"><div class="sw"><input id="q" placeholder="Search a post title or a place" aria-label="Search a post title or a place" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sug"><div id="sug" class="sug" role="listbox" hidden></div></div><button>Search</button></form>
   <div class="chips" id="chips">
     <button class="chip" data-t="all" aria-pressed="true">All</button>
     <button class="chip" data-t="story" aria-pressed="false"><i style="background:var(--story)"></i>Stories</button>
     <button class="chip" data-t="stay" aria-pressed="false"><i style="background:var(--stay)"></i>Stays</button>
     <button class="chip" data-t="food" aria-pressed="false"><i style="background:var(--food)"></i>Food</button>
   </div>
-  <button id="add">Share a place</button>
+  <button id="add"><span class="full">Share a place</span><span class="short">+ Share</span></button>
   <span class="who" id="who"></span>
   <button class="ghost" id="authbtn">Log in</button>
 </header>
@@ -333,12 +350,64 @@ map.on('moveend',render);
 /* ---- filters and search ---- */
 $('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;filter=b.dataset.t;
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));render()};
-$('sf').onsubmit=async e=>{e.preventDefault();const q=$('q').value.trim();if(!q)return;
+const norm=t=>String(t||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim();
+let sugItems=[],hl=-1;
+function matches(q){
+  const n=norm(q);if(!n)return [];
+  const sc=p=>{const t=norm(p.title);return t.startsWith(n)?0:t.split(/\s+/).some(w=>w.startsWith(n))?1:t.includes(n)?2:9};
+  return posts.map(p=>[sc(p),p]).filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).slice(0,6).map(x=>x[1]);
+}
+function hideSug(){$('sug').hidden=true;$('q').setAttribute('aria-expanded','false');hl=-1}
+function paintHl(){
+  [...$('sug').children].forEach((b,i)=>{b.classList.toggle('hl',i===hl);b.setAttribute('aria-selected',i===hl);if(i===hl)b.scrollIntoView({block:'nearest'})});
+}
+function drawSug(){
+  const q=$('q').value.trim(),box=$('sug');box.textContent='';hl=-1;
+  if(!q){sugItems=[];hideSug();return}
+  sugItems=matches(q);
+  sugItems.forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.setAttribute('role','option');
+    const d=document.createElement('i');d.style.cssText='width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px;background:'+COLORS[p.type];
+    const t=document.createElement('span');t.textContent=p.title+' · '+LABEL[p.type];
+    b.append(d,t);b.onclick=()=>goPost(p);box.appendChild(b);
+  });
+  const pl=document.createElement('button');pl.type='button';pl.setAttribute('role','option');
+  pl.textContent='Search the map for “'+q+'”';pl.onclick=()=>placeSearch(q);box.appendChild(pl);
+  box.hidden=false;$('q').setAttribute('aria-expanded','true');
+}
+function goPost(p){
+  hideSug();$('q').value=p.title;$('q').blur();
+  if(filter!=='all'&&filter!==p.type){filter='all';document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.t==='all'));render()}
+  const ll=L.latLng(p.lat,p.lng),z=Math.max(map.getZoom(),15);
+  if(map.getCenter().distanceTo(ll)<5&&map.getZoom()>=15){show(p);return}
+  let done=false;const open=()=>{if(!done){done=true;show(p)}};
+  map.once('moveend',open);setTimeout(open,1500);
+  map.flyTo(ll,z,{duration:.8});
+}
+async function placeSearch(q){
+  hideSug();$('q').blur();
   try{
     const r=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
     if(!r.length){$('list').innerHTML='<div class="empty">No place found for that search. Try a nearby city name.</div>';return}
     const bb=r[0].boundingbox.map(Number);map.flyToBounds([[bb[0],bb[2]],[bb[1],bb[3]]],{maxZoom:13});
   }catch{$('list').innerHTML='<div class="empty">Search needs an internet connection.</div>'}
+}
+$('q').addEventListener('input',drawSug);
+$('q').addEventListener('focus',()=>{if($('q').value.trim())drawSug()});
+$('q').addEventListener('keydown',e=>{
+  const n=$('sug').children.length;
+  if(e.key==='ArrowDown'&&n){e.preventDefault();hl=(hl+1)%n;paintHl()}
+  else if(e.key==='ArrowUp'&&n){e.preventDefault();hl=(hl-1+n)%n;paintHl()}
+  else if(e.key==='Escape')hideSug();
+});
+document.addEventListener('click',e=>{if(!$('sf').contains(e.target))hideSug()});
+$('sf').onsubmit=e=>{
+  e.preventDefault();const q=$('q').value.trim();if(!q)return;
+  if(hl>=0&&hl<sugItems.length)return goPost(sugItems[hl]);
+  if(hl===sugItems.length)return placeSearch(q);
+  const m=matches(q);
+  if(m.length)return goPost(m[0]);
+  placeSearch(q);
 };
 
 /* ---- auth ---- */
