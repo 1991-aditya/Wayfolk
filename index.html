@@ -107,6 +107,33 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   .chips{order:6;flex:1 1 100%;overflow-x:auto}
 }
 @media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:55% 45%}aside{border-left:0;border-top:1px solid var(--line)}}
+
+/* ---- colour theme ---- */
+:root{--paper:#fdf8f0;--teal:#137a7a;--sun:#e08e1b;--chili:#c8452d}
+body{background:var(--paper)}
+header{background:linear-gradient(100deg,#fff1cf 0%,#fde3d6 45%,#d9f1ec 100%);border-width:0 0 3px 0;border-style:solid;border-image:linear-gradient(90deg,var(--chili),var(--sun),var(--story)) 1}
+.logo span{background:linear-gradient(90deg,var(--chili),#d9780a);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+#sf button,#save,#npsave,#login,.cform button:not(.link){background:var(--teal);border-color:var(--teal)}
+#add{background:var(--chili);border-color:var(--chili)}
+.chip{box-shadow:0 1px 2px rgba(20,35,43,.07)}
+.chip[data-t=story][aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip[data-t=stay][aria-pressed=true]{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+.chip[data-t=food][aria-pressed=true]{background:var(--chili);border-color:var(--chili);color:#fff}
+.chip[aria-pressed=true] i{box-shadow:0 0 0 2px #fff}
+aside{background:#fffdf9}
+.card{border-left-width:6px;border-radius:12px;box-shadow:0 1px 3px rgba(20,35,43,.07);transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(20,35,43,.12);border-color:var(--line)}
+.card.t-story{border-left-color:var(--story)}
+.card.t-stay{border-left-color:var(--sun)}
+.card.t-food{border-left-color:var(--chili)}
+.card.t-stay .tag{color:var(--ink)}
+#form{border-top:5px solid var(--sun)}
+#route{border-top:5px solid var(--story)}
+dialog{border-top:5px solid var(--chili)}
+.mode[aria-pressed=true]{background:var(--teal);border-color:var(--teal)}
+.gm{background:var(--teal)}
+.leaflet-popup-content-wrapper{border-radius:14px}
+@media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -234,13 +261,13 @@ function render(){
   });
   layer.addLayers(ms);
   const shown=vis.slice(0,50);
-  $('list').innerHTML=vis.length?shown.map(cardHtml).join('')+(vis.length>shown.length?`<div class="empty">Showing ${shown.length} of ${vis.length} places here. Zoom in to see the rest.</div>`:''):'<div class="empty">Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
+  $('list').innerHTML=vis.length?shown.map(cardHtml).join('')+(vis.length>shown.length?`<div class="empty">Showing ${shown.length} of ${vis.length} places here. Zoom in to see the rest.</div>`:''):'<div class="empty">🧭 Nothing here yet. Zoom out, search another place, or share the first post for this area.</div>';
   document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(posts.find(p=>p.id===c.dataset.id)));
 }
 const photoUrl=x=>sb.storage.from('photos').getPublicUrl(x).data.publicUrl;
 const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${esc(photoUrl(p.photo_paths[0]))}" alt="" loading="lazy">`:'';
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
-const cardHtml=p=>`<div class="card" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
+const cardHtml=p=>`<div class="card t-${esc(p.type)}" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
 const RT={car:{color:'#c8452d',path:'routed-car',gm:'driving'},foot:{color:'#1e8a8a',path:'routed-foot',gm:'walking'},bike:{color:'#e08e1b',path:'routed-bike',gm:'bicycling'},transit:{gm:'transit'}};
 let dest=null,origin=null,rmode='car',rcache={},pickStart=false,lastReq=0;
