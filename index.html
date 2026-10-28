@@ -99,7 +99,6 @@ dialog::backdrop{background:rgba(20,35,43,.5)}
   header{gap:8px;padding:8px 12px}
   #add,#authbtn{padding:8px 10px}
   #add .full{display:none}#add .short{display:inline}
-  .logo{order:1}
   #add{order:2;margin-left:auto}
   .who{order:3;max-width:90px}
   #authbtn{order:4}
@@ -134,10 +133,29 @@ dialog{border-top:5px solid var(--chili)}
 .gm{background:var(--teal)}
 .leaflet-popup-content-wrapper{border-radius:14px}
 @media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+
+/* ---- tricolour name, tagline, food type ---- */
+.brandbox{display:flex;flex-direction:column;gap:2px}
+.logo .brand{background:#14232b;color:#fff;-webkit-text-fill-color:#fff;-webkit-background-clip:border-box;background-clip:border-box;padding:3px 12px 5px;border-radius:99px}
+.brand b{font-weight:800;-webkit-text-fill-color:currentColor}
+.brand .s{color:#ff9933}.brand .w{color:#fff}.brand .g{color:#2aa81a}
+.tagline{margin:0 0 0 4px;font-size:12px;font-style:italic;color:#47585f}
+#dietf{width:auto;padding:6px 10px;border-radius:99px;background:#fff;font-weight:600}
+.dtag{font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;margin-left:6px;border:1px solid;display:inline-block}
+.d-veg{color:#1b6e14;border-color:#1b6e14;background:#eaf7e8}
+.d-nonveg{color:#a8321f;border-color:#a8321f;background:#fbebe7}
+.d-both{color:#6a4a00;border-color:#b8860b;background:#fdf3d6}
+@media(max-width:760px){.brandbox{order:1}}
+.chip{white-space:nowrap;flex:none}
+#dietf{flex:none}
+body{grid-template-columns:minmax(0,1fr)}
+header,main{min-width:0}
+@media(max-width:760px){.chip{padding:6px 9px;font-size:14px}#dietf{padding:6px 6px;font-size:14px}}
 </style>
 </head>
 <body>
 <header>
+  <div class="brandbox">
   <h1 class="logo" aria-label="Pathik">
     <svg class="walk" viewBox="0 0 94 40" width="94" height="40" aria-hidden="true" focusable="false">
       <g class="fp" fill="#14232b">
@@ -158,14 +176,17 @@ dialog{border-top:5px solid var(--chili)}
         <line x1="80" y1="24" x2="80" y2="35"><animateTransform attributeName="transform" type="rotate" values="28 80 24;-28 80 24;28 80 24" dur=".9s" repeatCount="indefinite"/></line>
         <line x1="80" y1="24" x2="80" y2="35"><animateTransform attributeName="transform" type="rotate" values="-28 80 24;28 80 24;-28 80 24" dur=".9s" repeatCount="indefinite"/></line>
       </g>
-    </svg><span aria-hidden="true">Pathik</span>
+    </svg><span class="brand" aria-hidden="true"><b class="s">Pa</b><b class="w">th</b><b class="g">ik</b></span>
   </h1>
+  <p class="tagline">stay with locals, eat like locals....</p>
+  </div>
   <form class="search" id="sf" role="search"><div class="sw"><input id="q" placeholder="Search a post title or a place" aria-label="Search a post title or a place" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sug"><div id="sug" class="sug" role="listbox" hidden></div></div><button>Search</button></form>
   <div class="chips" id="chips">
     <button class="chip" data-t="all" aria-pressed="true">All</button>
     <button class="chip" data-t="story" aria-pressed="false"><i style="background:var(--story)"></i>Stories</button>
     <button class="chip" data-t="stay" aria-pressed="false"><i style="background:var(--stay)"></i>Stays</button>
     <button class="chip" data-t="food" aria-pressed="false"><i style="background:var(--food)"></i>Food</button>
+    <select id="dietf" hidden aria-label="Food type"><option value="veg">Veg</option><option value="nonveg">Non-veg</option><option value="both" selected>Both</option></select>
   </div>
   <button id="add"><span class="full">Share a place</span><span class="short">+ Share</span></button>
   <span class="who" id="who"></span>
@@ -182,6 +203,7 @@ dialog{border-top:5px solid var(--chili)}
   <button class="ghost" id="locate" type="button" style="margin-top:8px">Use my current location</button>
   <label for="ftype">What are you sharing?</label>
   <select id="ftype"><option value="story">A story or tip</option><option value="stay">A stay I can host</option><option value="food">A local meal or food spot</option></select>
+  <div id="dietbox" style="display:none"><label for="fdiet">Food type</label><select id="fdiet"><option value="veg">Veg</option><option value="nonveg">Non-veg</option><option value="both">Both (veg and non-veg)</option></select></div>
   <p class="hint" id="stayhint" style="display:none">Everyone can see the pin. For a stay, place it near your area rather than exactly on your home.</p>
   <label for="ftitle">Title</label><input id="ftitle" maxlength="80">
   <label for="ftext">Details</label><textarea id="ftext" rows="4" maxlength="800"></textarea>
@@ -246,6 +268,9 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let posts=[],user=null,pin=null,formOpen=false;
 let filter='all';
+const DIET={veg:'Veg',nonveg:'Non-veg',both:'Veg & non-veg'};
+const dietOk=p=>$('dietf').value==='both'||p.diet===$('dietf').value||p.diet==='both';
+const dietHtml=p=>p.type==='food'&&p.diet?`<span class="dtag d-${esc(p.diet)}">${DIET[p.diet]||''}</span>`:'';
 
 /* ---- map ---- */
 const map=L.map('map',{minZoom:2,worldCopyJump:true}).setView([22,30],2);
@@ -253,9 +278,10 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribu
 const layer=L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true}).addTo(map);
 
 function render(){
+  $('dietf').hidden=filter!=='food';
   layer.clearLayers();
   const b=map.getBounds(),vis=[],ms=[];
-  posts.filter(p=>filter==='all'||p.type===filter).forEach(p=>{
+  posts.filter(p=>(filter==='all'||p.type===filter)&&(filter!=='food'||dietOk(p))).forEach(p=>{
     ms.push(L.marker([p.lat,p.lng],{icon:L.divIcon({className:'dot',html:`<span style="background:${COLORS[p.type]}"></span>`,iconSize:[18,18]})}).on('click',()=>show(p)));
     if(b.contains([p.lat,p.lng]))vis.push(p);
   });
@@ -267,7 +293,7 @@ function render(){
 const photoUrl=x=>sb.storage.from('photos').getPublicUrl(x).data.publicUrl;
 const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${esc(photoUrl(p.photo_paths[0]))}" alt="" loading="lazy">`:'';
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
-const cardHtml=p=>`<div class="card t-${esc(p.type)}" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
+const cardHtml=p=>`<div class="card t-${esc(p.type)}" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${dietHtml(p)}${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
 const RT={car:{color:'#c8452d',path:'routed-car',gm:'driving'},foot:{color:'#1e8a8a',path:'routed-foot',gm:'walking'},bike:{color:'#e08e1b',path:'routed-bike',gm:'bicycling'},transit:{gm:'transit'}};
 let dest=null,origin=null,rmode='car',rcache={},pickStart=false,lastReq=0;
@@ -443,7 +469,7 @@ $('lbclose').onclick=()=>$('lb').close();
 $('lb').addEventListener('close',()=>{$('lbbody').textContent=''});
 function show(p){
   const el=document.createElement('div');
-  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}`;
+  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}${dietHtml(p)?'<div style="margin-top:6px">'+dietHtml(p)+'</div>':''}`;
   const gl=gallery(p,false);if(gl)el.appendChild(gl);
   const rb=document.createElement('button');rb.className='ghost';rb.style.marginTop='8px';rb.textContent='Directions';rb.onclick=()=>openRoute(p);el.appendChild(rb);
   if(user&&p.user_id===user.id){
@@ -471,6 +497,7 @@ async function load(){
 map.on('moveend',render);
 
 /* ---- filters and search ---- */
+$('dietf').onchange=()=>render();
 $('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;filter=b.dataset.t;
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));render()};
 const norm=t=>String(t||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim();
@@ -571,7 +598,7 @@ $('signup').onclick=()=>doAuth(true);
 $('add').onclick=()=>{if(!user){$('amsg').textContent='Log in first to share a place.';$('auth').showModal();return}if(editing)closeForm(true);formOpen=true;$('form').classList.add('open')};
 $('cancel').onclick=()=>closeForm(true);
 function closeForm(discard){formOpen=false;$('form').classList.remove('open');if(pin){map.removeLayer(pin);pin=null}
-  ['ftitle','ftext','fprice'].forEach(i=>$(i).value='');resetMedia(discard===true);editing=null;$('formtitle').textContent='Share a place';$('save').textContent='Publish';$('pubmsg').textContent='';$('pinhint').textContent='Tap the map to drop a pin.'}
+  ['ftitle','ftext','fprice'].forEach(i=>$(i).value='');$('fdiet').value='both';resetMedia(discard===true);editing=null;$('formtitle').textContent='Share a place';$('save').textContent='Publish';$('pubmsg').textContent='';$('pinhint').textContent='Tap the map to drop a pin.'}
 function hintPin(){const ll=pin.getLatLng();$('pinhint').textContent=`Pin set at ${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}. Drag the pin to adjust.`}
 function setPin(ll){if(pin)map.removeLayer(pin);pin=L.marker(ll,{draggable:true}).addTo(map);pin.on('dragend',hintPin);hintPin()}
 map.on('click',e=>{if(!formOpen)return;setPin(e.latlng)});
@@ -588,7 +615,7 @@ $('locate').onclick=()=>{
     b.disabled=false;b.textContent='Use my current location';
   },{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 };
-$('ftype').onchange=()=>{const t=$('ftype').value;$('pricebox').style.display=t==='story'?'none':'block';$('stayhint').style.display=t==='stay'?'block':'none'};
+$('ftype').onchange=()=>{const t=$('ftype').value;$('pricebox').style.display=t==='story'?'none':'block';$('stayhint').style.display=t==='stay'?'block':'none';$('dietbox').style.display=t==='food'?'block':'none'};
 async function shrink(file,max=1600){
   const bmp=await createImageBitmap(file);
   const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
@@ -639,7 +666,7 @@ function startEdit(p){
   editing=p;formOpen=true;$('form').classList.add('open');
   $('formtitle').textContent='Edit your post';$('save').textContent='Save changes';
   $('ftype').value=p.type;$('ftype').onchange();
-  $('ftitle').value=p.title;$('ftext').value=p.body||'';$('fprice').value=p.price==null?'':p.price;
+  $('ftitle').value=p.title;$('ftext').value=p.body||'';$('fdiet').value=p.diet||'both';$('fprice').value=p.price==null?'':p.price;
   setPin(L.latLng(p.lat,p.lng));map.setView([p.lat,p.lng],Math.max(map.getZoom(),14));
   pics=(p.photo_paths||[]).map(x=>({_existing:true,_path:x}));drawPics();
   oldVid=p.video_path||null;drawVid();
@@ -737,7 +764,7 @@ $('save').onclick=async()=>{
     }else if(oldVid){video_path=oldVid}
     btn.textContent=editing?'Saving…':'Publishing…';
     const price=type!=='story'&&$('fprice').value!==''?Number($('fprice').value):null;
-    const row={type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path,photo_paths};
+    const row={type,title,body:$('ftext').value.trim(),price,lat:ll.lat,lng:ll.lng,video_path,photo_paths,diet:type==='food'?$('fdiet').value:null};
     if(editing){
       const {data,error}=await T(sb.from('posts').update(row).eq('id',editing.id).select('id'),20000,'Saving the changes');
       if(error)throw error;
