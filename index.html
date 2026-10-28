@@ -151,6 +151,13 @@ dialog{border-top:5px solid var(--chili)}
 body{grid-template-columns:minmax(0,1fr)}
 header,main{min-width:0}
 @media(max-width:760px){.chip{padding:6px 9px;font-size:14px}#dietf{padding:6px 6px;font-size:14px}}
+
+/* ---- Add Stay + registered badge ---- */
+#addstay{display:inline-block;background:var(--sun);color:var(--ink);border:1px solid var(--sun);border-radius:var(--r);padding:8px 14px;font-weight:600;text-decoration:none}
+#addstay:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.vtag{display:inline-block;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;margin-left:6px;background:#e3f4e1;color:#1b6e14;border:1px solid #1b6e14}
+@media(max-width:760px){#addstay{order:2;padding:8px 10px}#addstay .full{display:none}#addstay .short{display:inline}}
+@media(max-width:760px){.who{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -189,6 +196,7 @@ header,main{min-width:0}
     <select id="dietf" hidden aria-label="Food type"><option value="veg">Veg</option><option value="nonveg">Non-veg</option><option value="both" selected>Both</option></select>
   </div>
   <button id="add"><span class="full">Share a place</span><span class="short">+ Share</span></button>
+  <a id="addstay" href="host.html"><span class="full">Add Stay</span><span class="short">+ Stay</span></a>
   <span class="who" id="who"></span>
   <button class="ghost" id="authbtn">Log in</button>
 </header>
@@ -270,6 +278,7 @@ let posts=[],user=null,pin=null,formOpen=false;
 let filter='all';
 const DIET={veg:'Veg',nonveg:'Non-veg',both:'Veg & non-veg'};
 const dietOk=p=>$('dietf').value==='both'||p.diet===$('dietf').value||p.diet==='both';
+const vHtml=p=>p.verified?`<span class="vtag">✔ ${esc(p.verified_label||'Govt-registered homestay')}</span>`:'';
 const dietHtml=p=>p.type==='food'&&p.diet?`<span class="dtag d-${esc(p.diet)}">${DIET[p.diet]||''}</span>`:'';
 
 /* ---- map ---- */
@@ -293,7 +302,7 @@ function render(){
 const photoUrl=x=>sb.storage.from('photos').getPublicUrl(x).data.publicUrl;
 const thumb=p=>p.photo_paths&&p.photo_paths.length?`<img class="thumb" src="${esc(photoUrl(p.photo_paths[0]))}" alt="" loading="lazy">`:'';
 const priceHtml=p=>p.price!=null?`<div class="meta">$${esc(p.price)} ${p.type==='stay'?'per night':'per meal'}</div>`:'';
-const cardHtml=p=>`<div class="card t-${esc(p.type)}" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${dietHtml(p)}${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
+const cardHtml=p=>`<div class="card t-${esc(p.type)}" data-id="${esc(p.id)}"><span class="tag" style="background:${COLORS[p.type]}">${LABEL[p.type]}</span>${dietHtml(p)}${vHtml(p)}${thumb(p)}<h3>${esc(p.title)}</h3><p>${esc(p.body)}</p>${priceHtml(p)}</div>`;
 
 const RT={car:{color:'#c8452d',path:'routed-car',gm:'driving'},foot:{color:'#1e8a8a',path:'routed-foot',gm:'walking'},bike:{color:'#e08e1b',path:'routed-bike',gm:'bicycling'},transit:{gm:'transit'}};
 let dest=null,origin=null,rmode='car',rcache={},pickStart=false,lastReq=0;
@@ -469,7 +478,7 @@ $('lbclose').onclick=()=>$('lb').close();
 $('lb').addEventListener('close',()=>{$('lbbody').textContent=''});
 function show(p){
   const el=document.createElement('div');
-  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}${dietHtml(p)?'<div style="margin-top:6px">'+dietHtml(p)+'</div>':''}`;
+  el.innerHTML=`<strong>${esc(p.title)}</strong><br>${esc(p.body)}${priceHtml(p)}${dietHtml(p)?'<div style="margin-top:6px">'+dietHtml(p)+'</div>':''}${vHtml(p)?'<div style="margin-top:6px">'+vHtml(p)+'</div>':''}`;
   const gl=gallery(p,false);if(gl)el.appendChild(gl);
   const rb=document.createElement('button');rb.className='ghost';rb.style.marginTop='8px';rb.textContent='Directions';rb.onclick=()=>openRoute(p);el.appendChild(rb);
   if(user&&p.user_id===user.id){

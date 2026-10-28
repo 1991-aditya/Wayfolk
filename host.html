@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add Stay – Pathik</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14232b;--paper:#fdf8f0;--line:#d5dedb;--story:#1e8a8a;--sun:#e08e1b;--chili:#c8452d;--teal:#137a7a;--r:10px}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;color:var(--ink);background:var(--paper);font-size:15px;line-height:1.45}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(100deg,#fff1cf,#fde3d6 45%,#d9f1ec);border-bottom:3px solid var(--sun)}
+.back{color:var(--ink);font-weight:600;text-decoration:none}
+.brand{background:#14232b;border-radius:99px;padding:3px 12px 5px;font-weight:800;font-size:20px}
+.brand .s{color:#ff9933}.brand .w{color:#fff}.brand .g{color:#2aa81a}
+.title{font-weight:600}.who{margin-left:auto;font-size:13px;color:#47585f}
+main{max-width:760px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(20,35,43,.07)}
+h2{margin:0 0 6px}h3{margin:14px 0 6px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:#fff}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+button,.btn{cursor:pointer;display:inline-block;border:1px solid var(--teal);background:var(--teal);color:#fff;border-radius:var(--r);padding:8px 14px;font-weight:600;text-decoration:none}
+button:disabled{opacity:.6;cursor:wait}
+button.ghost,.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+button.danger{background:#fff;color:var(--chili);border-color:var(--chili)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fld{margin:10px 0}.fld>label{display:block;font-weight:600;margin-bottom:4px}
+.rq{color:var(--chili)}.hint,.muted{color:#47585f;font-size:13px;margin:4px 0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-weight:600}.chk input{width:auto;margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.steps{display:flex;gap:4px;margin:0 0 10px;padding:0;list-style:none}
+.steps li{flex:1;height:6px;border-radius:4px;background:var(--line)}.steps li.on{background:var(--sun)}.steps li.done{background:var(--teal)}
+.badge{display:inline-block;font-size:12px;font-weight:600;border-radius:99px;padding:2px 10px;background:#eef3f1;border:1px solid var(--line)}
+.badge.temporary,.badge.approved{background:#e3f4e1;border-color:#1b6e14;color:#1b6e14}
+.badge.rejected,.badge.expired{background:#fbebe7;border-color:#a8321f;color:#a8321f}
+.badge.submitted{background:#fdf3d6;border-color:#b8860b;color:#6a4a00}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top;font-size:14px}
+.scroll{overflow-x:auto}
+.ck{border-bottom:1px solid var(--line);padding:8px 0}.ckt{margin-bottom:4px}
+.yn{display:flex;gap:16px}.yn label{display:flex;gap:6px;align-items:center;font-weight:600}.yn input{width:auto}
+.mk{font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;margin-left:6px}.mk.m{background:#fbebe7;color:#a8321f}.mk.d{background:#eef3f1;color:#47585f}
+.docrow{border:1px dashed var(--line);border-radius:var(--r);padding:8px;margin:8px 0}
+.filechip{display:inline-flex;gap:6px;align-items:center;background:#eef3f1;border-radius:99px;padding:2px 4px 2px 10px;margin:2px;font-size:13px}
+.filechip button{padding:0 8px;background:#fff;color:var(--chili);border-color:var(--line)}
+.ul{padding-left:20px}.ul li{margin:6px 0}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:10}
+#toast.on{opacity:1}
+.paper{background:#fff;color:#000;border:1px solid #999;padding:18px;margin-bottom:14px;font-family:Georgia,'Times New Roman',serif}
+.paper h2{text-align:center;font-size:18px}.paper h4{text-align:center;margin:2px 0 10px}
+.paper table td,.paper table th{border-color:#999}.paper td.n{width:34px}
+.sign{display:flex;justify-content:space-between;margin-top:36px}
+.pb{page-break-before:always}
+@media print{header.top,.noprint,#toast{display:none!important}body{background:#fff}main{max-width:none;padding:0}.paper{border:0;padding:0}}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><a class="back" href="index.html">← Map</a><span class="brand" aria-label="Pathik"><b class="s">Pa</b><b class="w">th</b><b class="g">ik</b></span><span class="title">Add your stay</span><span class="who" id="who"></span></header>
+<main id="app"></main>
+<div id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fdgcndmgaomsorwnvgtv.supabase.co','sb_publishable_3GO5xaV509MPbt6_YsaSYQ_ERO1sLkK');
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const get=(o,p)=>p.split('.').reduce((a,k)=>a==null?undefined:a[k],o);
+const set=(o,p,v)=>{const ks=p.split('.');let a=o;ks.forEach((k,i)=>{if(i===ks.length-1){a[k]=v;return}if(a[k]==null||typeof a[k]!=='object')a[k]=(k==='staff'&&/^\d+$/.test(ks[i+1]))?[]:{};a=a[k]})};
+const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const fdate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-GB'):'—';
+const wdate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}):'';
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)};
+const FEE={Silver:1000,Gold:2000};
+let user=null;
+
+/* ---------------- scheme data (Rajasthan Homestay (PGH) Scheme, 2026) ---------------- */
+const RT=[['single','Single Bedroom'],['double','Double Bedroom'],['triple','Triple Bedroom'],['dorm','Dormitory']];
+// [text, Silver, Gold]  M = mandatory, D = desirable, number = minimum sq ft
+const CHK=[
+['Well maintained and well equipped house and guest rooms with quality carpets/area rugs/tiles or marble flooring, furniture, fittings etc. in keeping with the traditional lifestyle.','D','M'],
+['Sufficient parking with adequate road width.','D','M'],
+['Guest rooms: minimum 01 lettable room and maximum 08 rooms (24 beds). All rooms should be clean, airy, pest free, without dampness and with outside window/ventilation.','M','M'],
+['Minimum floor area for each room (sq ft).',60,120],
+['Comfortable bed with good quality linen and bedding, preferably of Indian design.','M','M'],
+['Attached private bathrooms with every room along with toiletries.','D','M'],
+['Minimum size of each bathroom (sq ft).',30,60],
+['WC toilet to have a seat and lid, toilet paper.','D','M'],
+['24 hours running hot and cold water with proper sewerage connections.','D','M'],
+['Water saving taps/shower.','D','D'],
+['Well maintained, smoke free, clean, hygienic, odour free, pest free kitchen.','D','M'],
+['Dining area.','D','M'],
+['Good quality cutlery and crockery.','M','M'],
+['Air-conditioning / heating depending on climatic conditions with room temperature between 20 to 25 degrees Centigrade in the offered room.','D','M'],
+['Iron with iron board on request.','D','M'],
+['Internet connection.','D','M'],
+['15 amp earthed power socket in the guest room.','M','M'],
+['Wardrobe with at least 4 clothes hangers in the guest room.','D','M'],
+['Shelves or drawer space in the guest rooms.','D','M'],
+['Complimentary Aquaguard/RO/mineral water.','M','M'],
+['Good quality chairs, working table and other necessary furniture.','D','M'],
+['Refrigerator in the room.','D','M'],
+['A lounge or seating arrangement in the lobby area.','D','M'],
+['Heating and cooling to be provided in enclosed public rooms.','D','M'],
+['Garbage disposal facilities as per Municipal laws.','M','M'],
+['Acceptance of cash/cheque/DD/online payment.','M','M'],
+['Name, address and telephone number of nearby doctors/medical centre.','M','M'],
+['Left luggage facilities.','M','M'],
+['Assistance with luggage, on request.','D','M'],
+['Safekeeping facilities in the rooms.','D','D'],
+['Smoke/heat detectors in the house.','D','D'],
+['Security guard facilities.','D','M'],
+['Maintenance of register for guest check-in and check-out records including passport details in case of foreign tourists.','M','M']];
+const UT=[
+'that my establishment is a residential unit and I am / Caretaker is physically residing therein. I intend to register my premises as a Homestay (Paying Guest House).',
+'that I am the owner/lessee with registered lease (document enclosed) and am fully authorized to run the residence as a Homestay (Paying Guest House).',
+'that the establishment is located in a residential area surrounded by other residential houses, hospital, police station, etc. located in close vicinity.',
+'that Police verification and credentials of staff employed at the establishment is always done on first employment and its record is maintained properly.',
+'that proper safety measures are maintained at the establishment for women travelers.',
+'that I shall let out not less than One room and not more than Eight rooms (maximum of 24 beds) to guests.',
+'that each lettable bedroom has an attached bathroom and WC and adequate arrangement for water and power supply, proper ventilation and lighting, suitable furniture and other facilities.',
+'that premises are in good state of repair and have required standard of hygiene, cleanliness and safety including fire safety (as per norms).',
+"that I will maintain a register of tourists staying at the establishment in Form 'E' and shall preserve the same at least for 7 years or as per the law in force.",
+'that I will furnish particulars of any foreigner staying in the establishment to the Police/concerned authorities as per the relevant law and guidelines, time being in force.',
+'BREAKFAST',
+'that I will furnish details of tourists stayed at the premises in a month to TRC/TIB on 5th of the following month.',
+'that I will obtain, keep and furnish full particulars of the identity of the persons admitted to the establishment.',
+'forthwith to communicate to the Prescribed Authority any change in ownership/caretaker of the Homestay (Paying Guest House) whether by inheritance or transfer.',
+'that there is an adequate parking facility either within the same campus or in the vicinity;',
+"that I will abide by the decision of the Department of Tourism, Government of Rajasthan for categorization of my establishment as 'Silver' or 'Gold' category; and",
+'any other condition the Commissioner/Director, Department of Tourism may impose, from time to time.',
+'I shall abide by all prevailing Govt. acts, laws, rules, regulations and guidelines.',
+'I shall apply for renewal within a period of three months to one month before the date of expiry of the registration.'];
+const UCLOSE=['I hereby certify that I have read all above mentioned points carefully and I will abide by all.',
+'I have read and understood all the terms and conditions mentioned in the guidelines with respect to the approval, registration and classification of the Homestay (Paying Guest House) and hereby agree to abide by them. The information and documents provided are correct and authentic to the best of my knowledge.',
+'I hereby agree to abide by the above mentioned undertaking, failing which the Prescribed Authority holds the right to cancel the registration and take necessary action against the undersigned. I am also liable to be booked/prosecuted under existing rules, laws, etc.',
+'In case there is any change in the details submitted by me in the application form, I shall submit the same to the concerned Tourist Reception Centre/Tourist Information Bureau within a week\'s time.'];
+const DOCS=[
+['d1','1. Property ownership / registered lease document copy',0],
+['d2','2. Last three electricity bills and three water bills of the establishment',0],
+['d3','3. Photo ID with address proof of the owner/lessee',0],
+['d4','4. Photo ID with address proof of the caretaker',1],
+['d5','5. Declaration form for caretaker by the property owner/lessee (Form F, signed)',1],
+['d7','7. Colour photographs of the property: outer facade, rooms, bathroom, kitchen, lounge etc.',0]];
+const STATUS={
+draft:['Draft','Not submitted yet. Continue filling the application.'],
+submitted:['Submitted to Pathik','Next: print your forms, sign them, pay the fee by e-challan and file them at your Tourist Reception Centre / Tourist Information Bureau. When the Department gives you the Temporary Registration Certificate (Form B), upload it here so Pathik can list your stay.'],
+temporary:['Temporary registration','Your stay is listed on Pathik with a temporary-registration badge. The Department inspects within three months and issues the Registration Certificate (Form C).'],
+approved:['Registered','Your stay is listed on Pathik as a registered homestay.'],
+rejected:['Not approved','You can correct the application and submit it again.'],
+expired:['Expired','Your registration has expired. Apply for renewal (Form D) or send a fresh application.']};
+
+/* ---------------- helpers ---------------- */
+function fld(d,k,label,o={}){
+  const v=get(d,k)??'',req=o.req?' required':'',id='f_'+k.replace(/\./g,'_');
+  let input;
+  if(o.type==='select')input=`<select id="${id}" data-k="${k}"${req}><option value="">Select…</option>${o.opts.map(([a,b])=>`<option value="${a}"${v===a?' selected':''}>${esc(b)}</option>`).join('')}</select>`;
+  else if(o.type==='textarea')input=`<textarea id="${id}" data-k="${k}" rows="${o.rows||3}"${req}>${esc(v)}</textarea>`;
+  else input=`<input id="${id}" data-k="${k}" type="${o.type||'text'}" value="${esc(v)}"${o.min!=null?` min="${o.min}"`:''}${o.step?` step="${o.step}"`:''}${o.pattern?` pattern="${o.pattern}"`:''}${o.ro?' readonly':''}${req}>`;
+  return `<div class="fld"><label for="${id}">${esc(label)}${o.req?' <b class="rq">*</b>':''}</label>${input}${o.hint?`<p class="hint">${esc(o.hint)}</p>`:''}</div>`;
+}
+function collect(root,d){
+  $$('[data-k]',root).forEach(el=>{
+    let v;
+    if(el.type==='checkbox')v=el.checked;
+    else if(el.type==='radio'){if(!el.checked)return;v=el.value}
+    else if(el.type==='number')v=el.value===''?'':Number(el.value);
+    else v=el.value.trim();
+    set(d,el.dataset.k,v);
+  });
+}
+async function shrink(file,max=1800){
+  const bmp=await createImageBitmap(file),k=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Could not read that image')),'image/jpeg',0.85));
+}
+async function upload(bucket,file){
+  let blob=file,ct=file.type;
+  if(ct.startsWith('image/')){blob=await shrink(file);ct='image/jpeg'}
+  if(blob.size>5*1024*1024)throw new Error('File is over 5 MB. Please choose a smaller one.');
+  const ext=ct==='application/pdf'?'pdf':'jpg',path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+  const {error}=await sb.storage.from(bucket).upload(path,blob,{contentType:ct});
+  if(error)throw error;
+  return path;
+}
+const setupMsg=e=>`<section class="card"><h2>Setup needed</h2><p>${esc(e.message||e)}</p><p class="hint">If this says a table does not exist, the Supabase setup SQL for homestays has not been run yet.</p></section>`;
+
+/* ---------------- routing ---------------- */
+async function init(){
+  const {data}=await sb.auth.getSession();user=data.session?.user||null;
+  sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;setTimeout(route,0)});
+  route();
+}
+window.addEventListener('hashchange',route);
+async function route(){
+  const app=$('#app');$('#who').textContent=user?user.email:'';
+  if(!user){app.innerHTML='<section class="card"><h2>Log in to add your stay</h2><p>Please log in on the Pathik map page first, then come back here.</p><a class="btn" href="index.html">Go to Pathik and log in</a></section>';return}
+  const [,page,id]=(location.hash||'#/').slice(1).split('/');
+  try{
+    if(page==='new')return openWizard(null);
+    if(page==='edit')return openWizard(id);
+    if(page==='print')return printView(id);
+    if(page==='cert')return certView(id);
+    if(page==='register')return registerView(id);
+    if(page==='renew')return renewView(id);
+    return dashboard();
+  }catch(e){app.innerHTML=setupMsg(e)}
+}
+async function loadApp(id){
+  const {data,error}=await sb.from('homestay_applications').select('*').eq('id',id).single();
+  if(error||!data)throw new Error('Application not found.');
+  return data;
+}
+
+/* ---------------- dashboard ---------------- */
+async function dashboard(){
+  const app=$('#app');app.innerHTML='<p class="muted">Loading…</p>';
+  const {data,error}=await sb.from('homestay_applications').select('*').order('created_at',{ascending:false});
+  if(error){app.innerHTML=setupMsg(error);return}
+  let h=`<section class="card"><h2>Add a stay on Pathik</h2><p>Only households registered under the <b>Rajasthan Homestay (Paying Guest House) Scheme, 2026</b> are listed as stays. Prepare your application here (Forms A and F, the checklist and the undertaking), print it, sign it and file it at your Tourist Reception Centre. The Department takes applications offline for now (clause 3(7) of the scheme). Pathik lists your stay after you upload the certificate the Department gives you.</p><a class="btn" href="#/new">Start a new application</a></section>`;
+  if(!data.length)h+='<p class="muted">You have no applications yet.</p>';
+  data.forEach(a=>{
+    const d=a.data||{},[lab,info]=STATUS[a.status]||[a.status,''];
+    const live=['temporary','approved'].includes(a.status);
+    let btns='';
+    if(['draft','rejected','submitted'].includes(a.status))btns+=`<a class="btn" href="#/edit/${a.id}">${a.status==='submitted'?'Edit':'Continue'}</a>`;
+    btns+=`<a class="btn ghost" href="#/print/${a.id}">Print forms</a>`;
+    if(live||a.status==='expired')btns+=`<a class="btn ghost" href="#/cert/${a.id}">Certificate (Form ${a.status==='temporary'?'B':'C'})</a>`;
+    if(live)btns+=`<a class="btn ghost" href="#/register/${a.id}">Guest register (Form E)</a>`;
+    if(a.status==='approved'||a.status==='expired')btns+=`<a class="btn ghost" href="#/renew/${a.id}">Renewal (Form D)</a>`;
+    if(a.status==='draft')btns+=`<button class="danger" data-del="${a.id}">Delete draft</button>`;
+    const certs=(d.dept_certs||[]).length;
+    h+=`<section class="card"><div><span class="badge ${esc(a.status)}">${esc(lab)}</span> ${a.category_final?`<span class="badge">${esc(a.category_final)}</span>`:''}</div>
+    <h3>${esc(d.estab_name||'Untitled application')}</h3><p class="muted">${esc(info)}</p>
+    ${a.status==='rejected'&&a.admin_note?`<p><b>Note from Pathik:</b> ${esc(a.admin_note)}</p>`:''}
+    ${a.reg_no?`<p class="muted">Registration no. ${esc(a.reg_no)} · valid till ${fdate(a.status==='temporary'?a.temp_valid_till:a.reg_valid_till)}</p>`:''}
+    ${a.status==='submitted'?`<div class="fld"><label for="cert_${a.id}">Upload the Department's certificate (Form B or C), photo or PDF</label><input type="file" id="cert_${a.id}" data-cert="${a.id}" accept="image/*,application/pdf"><p class="hint">${certs?certs+' file(s) uploaded.':'Nothing uploaded yet.'}</p></div>`:''}
+    <div class="row">${btns}</div></section>`;
+  });
+  app.innerHTML=h;
+  $$('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this draft?'))return;const {error}=await sb.from('homestay_applications').delete().eq('id',b.dataset.del);if(error)toast(error.message);else dashboard()});
+  $$('[data-cert]').forEach(i=>i.onchange=async()=>{
+    const f=i.files[0];if(!f)return;toast('Uploading…');
+    try{
+      const a=data.find(x=>x.id===i.dataset.cert),d=a.data||{};
+      const p=await upload('homestay-docs',f);d.dept_certs=[...(d.dept_certs||[]),{p,n:f.name}];
+      const {error}=await sb.from('homestay_applications').update({data:d}).eq('id',a.id);if(error)throw error;
+      toast('Uploaded. Pathik will check it.');dashboard();
+    }catch(e){toast(e.message)}
+  });
+}
+
+/* ---------------- wizard: Form A + Schedule + Undertaking + Form F ---------------- */
+let W=null;
+const TITLES=['Owner and establishment','Location and premises','Rooms, food and tariff','Checklist (Schedule)','People and caretaker (Form F)','Fee and documents','Undertaking and verification'];
+async function openWizard(id){
+  if(id){const a=await loadApp(id);W={id:a.id,status:a.status,d:a.data||{},step:0}}
+  else W={id:null,status:'draft',d:{},step:0};
+  if(!['draft','submitted','rejected'].includes(W.status)){$('#app').innerHTML='<section class="card"><h2>This application is locked</h2><p>It cannot be edited after registration. Contact Pathik for changes.</p><a class="btn" href="#/">Back</a></section>';return}
+  drawStep();
+}
+const reqFor=(cat,c)=>cat==='Gold'?c[2]:cat==='Silver'?c[1]:null;
+function stepHtml(i,d){
+  if(i===0)return `<h3>Owner and establishment</h3>
+  <p class="hint">The scheme needs the owner, lessee or caretaker to be physically living in the premises.</p>`+
+  fld(d,'owner_name','1. Name of the owner / lessee',{req:1})+fld(d,'estab_name','2. Name of the establishment',{req:1})+
+  fld(d,'category','3. Category applied for',{type:'select',req:1,opts:[['Silver','Silver (fee ₹1,000)'],['Gold','Gold (fee ₹2,000)']],hint:'The Department decides the final category after inspection.'})+
+  fld(d,'tenure','7(a). Owned or leased premises',{type:'select',req:1,opts:[['owned','Owned (attach proof of ownership)'],['leased','Leased (attach registered lease deed; lease must be at least 3 years)']]})+
+  `<div class="fld"><label class="chk"><input type="checkbox" data-k="caretaker_on" ${d.caretaker_on?'checked':''}> A caretaker manages the homestay (then Form F is also needed)</label></div>`+
+  fld(d,'caretaker_name','4. Name of the person authorized to manage (if caretaker)')+
+  fld(d,'address','5. Complete postal address of the establishment',{type:'textarea',req:1})+
+  `<div class="grid2">${fld(d,'lat','Latitude',{type:'number',step:'any',req:1})}${fld(d,'lng','Longitude',{type:'number',step:'any',req:1})}</div>
+  <button type="button" class="ghost" id="loc">Use my current location</button><p class="hint">Stand at the property and tap the button, so tourists see the right pin on the Pathik map.</p>`;
+  if(i===1)return `<h3>Distances and premises</h3><p class="hint">6. Distance of the establishment in km from:</p><div class="grid2">`+
+  fld(d,'dist_airport','(a) Airport',{type:'number',min:0,step:'0.1',req:1})+fld(d,'dist_rail','(b) Railway station',{type:'number',min:0,step:'0.1',req:1})+
+  fld(d,'dist_bus','(c) Nearest bus terminal / stand / stop',{type:'number',min:0,step:'0.1',req:1})+fld(d,'dist_city','(d) City centre',{type:'number',min:0,step:'0.1',req:1})+
+  fld(d,'dist_shop','(e) Nearest shopping centre',{type:'number',min:0,step:'0.1',req:1})+fld(d,'dist_metro','(f) Nearest metro station (Jaipur only)',{type:'number',min:0,step:'0.1'})+`</div>
+  <h3>7. Details of the establishment</h3>`+
+  fld(d,'road_width','(b) Width of the road on which the establishment is located',{req:1,hint:'For example: 20 ft'})+
+  fld(d,'parking','(c) Parking area available in the establishment or its vicinity',{type:'textarea',req:1})+
+  `<div class="grid2">${fld(d,'plot_area','(d) Plot area (sq m)',{type:'number',min:0,step:'any',req:1})}${fld(d,'covered_area','(e) Covered area (sq m)',{type:'number',min:0,step:'any',req:1})}</div>`;
+  if(i===2){
+    const r=d.rooms||{};
+    return `<h3>7(f). Details of rooms</h3><p class="hint">Offer 1 to 8 rooms, each with an attached bathroom and WC, with at most 24 beds in all.</p>
+    <div class="scroll"><table><tr><th>Type of room</th><th>No. of rooms</th><th>No. of beds</th><th>Area of room (sq ft)</th><th>Tariff (₹, per night)</th></tr>`+
+    RT.map(([k,l])=>`<tr><td>${l}</td><td><input type="number" min="0" data-k="rooms.${k}.n" value="${esc(get(r,k+'.n')??'')}" aria-label="${l} rooms"></td><td><input type="number" min="0" data-k="rooms.${k}.beds" value="${esc(get(r,k+'.beds')??'')}" aria-label="${l} beds"></td><td><input type="number" min="0" step="any" data-k="rooms.${k}.area" value="${esc(get(r,k+'.area')??'')}" aria-label="${l} area"></td><td><input type="number" min="0" data-k="tariff.${k}" value="${esc(get(d,'tariff.'+k)??'')}" aria-label="${l} tariff"></td></tr>`).join('')+
+    `</table></div><p class="hint">The dormitory tariff is per bed.</p><div class="grid2">`+
+    fld(d,'rooms_offered','(g) Rooms offered under the scheme',{ro:1})+fld(d,'total_beds','Total beds',{ro:1})+`</div>
+    <h3>(h) Common areas (sq m)</h3><div class="grid2">${fld(d,'lobby_area','(i) Lobby / lounge',{type:'number',min:0,step:'any'})}${fld(d,'dining_area','(ii) Dining space',{type:'number',min:0,step:'any'})}</div>`+
+    fld(d,'extra_facilities','(i) Additional facilities, if any',{type:'textarea'})+fld(d,'eco','(j) Eco-friendly facilities',{type:'textarea'})+fld(d,'fire','(k) Firefighting equipment / hydrants',{type:'textarea'})+
+    fld(d,'breakfast','8. Is breakfast served?',{type:'select',req:1,opts:[['yes','Yes (tariff must include breakfast, no extra charge)'],['no','No (served on request)']]})+
+    fld(d,'meals','9. Types of food / meals provided',{type:'select',req:1,opts:[['veg','Veg'],['nonveg','Non-veg'],['both','Both (veg and non-veg)']]})+
+    fld(d,'meals_note','Meal details (optional)',{type:'textarea',rows:2});
+  }
+  if(i===3){
+    const cat=d.category;
+    return `<h3>Schedule: checklist of facilities</h3><p class="hint">${cat?`Showing requirements for <b>${cat}</b>. `:'Choose a category in step 1 to see its requirements. '}Answer Yes or No for every item. <b>Mandatory</b> items matter most; the Department may relax them.</p>`+
+    CHK.map((c,n)=>{
+      const q=reqFor(cat,c),lab=q==null?`Silver: ${c[1]==='M'?'Mandatory':c[1]==='D'?'Desirable':'min '+c[1]} · Gold: ${c[2]==='M'?'Mandatory':c[2]==='D'?'Desirable':'min '+c[2]}`:(q==='M'?'Mandatory':q==='D'?'Desirable':'Min '+q);
+      const v=get(d,'checklist.'+(n+1));
+      return `<div class="ck"><div class="ckt"><b>${n+1}.</b> ${esc(c[0])} <span class="mk ${q==='M'?'m':'d'}">${lab}</span></div><div class="yn"><label><input type="radio" name="ck${n+1}" data-k="checklist.${n+1}" value="yes" ${v==='yes'?'checked':''} required> Yes</label><label><input type="radio" name="ck${n+1}" data-k="checklist.${n+1}" value="no" ${v==='no'?'checked':''}> No</label></div></div>`;
+    }).join('');
+  }
+  if(i===4){
+    const st=d.staff&&d.staff.length?d.staff:[{}];
+    let h=`<h3>13. Members / staff residing in the homestay</h3><p class="hint">Give age, profession and contact. Do not type ID numbers here; photo ID copies go with your printed application.</p>`;
+    h+=st.map((s,n)=>`<div class="docrow"><div class="grid2">${fld(d,`staff.${n}.name`,'Name',{req:n===0})}${fld(d,`staff.${n}.age`,'Age',{type:'number',min:0})}${fld(d,`staff.${n}.profession`,'Profession')}${fld(d,`staff.${n}.phone`,'Contact number',{type:'tel'})}</div>${fld(d,`staff.${n}.id_type`,'Photo ID type (for example Aadhaar, Voter ID)')}${n>0?`<button type="button" class="danger" data-rmstaff="${n}">Remove</button>`:''}</div>`).join('');
+    h+=`<button type="button" class="ghost" id="addstaff">+ Add another person</button>`;
+    h+=fld(d,'background_note','Brief note on the background of the owner / representative and family (Annexure-1, item 6)',{type:'textarea',req:1});
+    if(d.caretaker_on){
+      h+=`<h3>Form F: caretaker details declaration</h3>`+
+      fld(d,'caretaker_name','1. Name of caretaker',{req:1})+fld(d,'caretaker.father','2. Father\'s / husband\'s name',{req:1})+fld(d,'caretaker.perm_addr','3. Permanent address',{type:'textarea',req:1})+fld(d,'caretaker.local_addr','4. Local address (if different)',{type:'textarea'})+
+      fld(d,'caretaker.aadhaar4','5. Aadhaar: last 4 digits only',{pattern:'\\d{4}',req:1,hint:'Pathik does not store the full Aadhaar number. Attach the self-attested copy to your printed set.'})+
+      fld(d,'caretaker.mobile','6. Mobile number',{type:'tel',req:1})+fld(d,'caretaker.email','7. Email ID (if any)',{type:'email'})+
+      fld(d,'caretaker.owner_res','Address of the owner\'s residence',{type:'textarea',req:1})+fld(d,'caretaker.owner_phone','Owner\'s phone',{type:'tel',req:1})+fld(d,'caretaker.owner_email','Owner\'s email',{type:'email'});
+    }else h+='<p class="hint">Form F is needed only when a caretaker manages the homestay. You marked none in step 1.</p>';
+    return h;
+  }
+  if(i===5){
+    const need=DOCS.filter(x=>!x[2]||d.caretaker_on),docs=d.docs||{};
+    return `<h3>11. Fee</h3><p class="hint">Pay by e-challan to the Commissioner/Director, Department of Tourism, Jaipur, via your Tourist Reception Centre. The fee is non-refundable: Silver ₹1,000, Gold ₹2,000.</p><div class="grid2">`+
+    fld(d,'challan_no','E-challan number',{req:1})+fld(d,'challan_date','E-challan date',{type:'date',req:1})+fld(d,'challan_amount','Amount (₹)',{type:'number',min:0,req:1,hint:d.category?`Expected: ${inr(FEE[d.category])}`:''})+`</div>
+    <h3>12. Documents (Annexure-1)</h3><p class="hint">Upload a clear photo or PDF, up to 5 MB each. Item 6 is covered by the note in the previous step. Pathik keeps these private and uses them only to check your application.</p>`+
+    need.map(([k,l])=>`<div class="docrow"><b>${esc(l)}</b><div>${(docs[k]||[]).map((f,n)=>`<span class="filechip"><a href="#" data-view="${esc(f.p)}">${esc(f.n)}</a><button type="button" data-rmdoc="${k}:${n}" aria-label="Remove file">×</button></span>`).join('')||'<span class="muted">Nothing uploaded yet.</span>'}</div><input type="file" data-doc="${k}" accept="image/*,application/pdf" multiple aria-label="Upload ${esc(l)}"></div>`).join('')+
+    `<h3>Photos for your public listing</h3><p class="hint">Up to 3 photos that tourists will see on Pathik. Do not include people or ID papers.</p><div>${(d.listing_photos||[]).map((p,n)=>`<span class="filechip">Photo ${n+1}<button type="button" data-rmph="${n}" aria-label="Remove photo">×</button></span>`).join('')||'<span class="muted">No photos yet.</span>'}</div><input type="file" id="phin" accept="image/*" multiple aria-label="Upload listing photos">`;
+  }
+  if(i===6){
+    const bf=d.breakfast==='yes'?'that I have included Breakfast in the tariff and shall serve it compulsorily to Guests without any additional cost.':'that I have not included Breakfast in the tariff and shall serve breakfast on request by the Guest.';
+    return `<h3>Undertaking</h3><p class="hint">To the Prescribed Authority, Tourist Reception Centre / Tourist Information Bureau. The official undertaking is signed on non-judicial stamp paper; this digital copy fills your printout.</p><p>I hereby undertake the following:</p><ol class="ul" type="i">${UT.map(t=>`<li>${esc(t==='BREAKFAST'?bf:t)}</li>`).join('')}</ol>${UCLOSE.map(t=>`<p>${esc(t)}</p>`).join('')}`+
+    `<div class="fld"><label class="chk"><input type="checkbox" data-k="ut.accepted" ${get(d,'ut.accepted')?'checked':''} required> I have read and agree to the undertaking above.</label></div>`+
+    `<h3>Verification</h3><div class="grid2">${fld(d,'ut.name','I (name)',{req:1})}${fld(d,'ut.father','S/o (father\'s name)',{req:1})}${fld(d,'ut.place','Place',{req:1})}${fld(d,'ut.date','Date',{type:'date',req:1})}${fld(d,'ut.mobile','Mobile number',{type:'tel',req:1})}${fld(d,'ut.email','Email',{type:'email'})}</div>
+    <p class="hint">This confirms the information is true to the best of my knowledge and the documents are authentic. You still sign the printed copy by hand.</p>`;
+  }
+}
+function drawStep(){
+  const app=$('#app'),d=W.d,i=W.step,last=i===TITLES.length-1;
+  app.innerHTML=`<section class="card"><ul class="steps" aria-hidden="true">${TITLES.map((_,n)=>`<li class="${n<i?'done':n===i?'on':''}"></li>`).join('')}</ul>
+  <p class="muted">Step ${i+1} of ${TITLES.length}: ${TITLES[i]}</p>
+  ${W.status==='rejected'?'<p class="hint">Not approved earlier. Correct the details and submit again.</p>':''}
+  <form id="wf" novalidate>${stepHtml(i,d)}<p class="hint" id="wmsg" role="alert" style="color:#a8321f"></p>
+  <div class="row noprint">${i>0?'<button type="button" class="ghost" id="back">Back</button>':''}<button type="button" class="ghost" id="save">Save draft</button><button type="submit" id="next">${last?'Submit application':'Next'}</button></div></form></section>`;
+  bindStep(i);window.scrollTo(0,0);
+}
+function recompute(f){
+  let n=0,b=0;RT.forEach(([k])=>{n+=+($(`[data-k="rooms.${k}.n"]`,f)?.value||0);b+=+($(`[data-k="rooms.${k}.beds"]`,f)?.value||0)});
+  const a=$('[data-k="rooms_offered"]',f),c=$('[data-k="total_beds"]',f);if(a){a.value=n;c.value=b}
+}
+function bindStep(i){
+  const f=$('#wf'),msg=t=>{$('#wmsg').textContent=t||''};
+  const keep=()=>collect(f,W.d);
+  if(i===0){$('#loc').onclick=()=>{
+    if(!navigator.geolocation){msg('This browser cannot share your location. Type the latitude and longitude.');return}
+    $('#loc').textContent='Finding you…';
+    navigator.geolocation.getCurrentPosition(p=>{$('[data-k="lat"]',f).value=p.coords.latitude.toFixed(6);$('[data-k="lng"]',f).value=p.coords.longitude.toFixed(6);$('#loc').textContent='Use my current location';msg('')},
+      ()=>{$('#loc').textContent='Use my current location';msg('Could not get your location. Allow it in the browser, or type the latitude and longitude.')},{enableHighAccuracy:true,timeout:15000})}}
+  if(i===2){f.addEventListener('input',()=>recompute(f));recompute(f)}
+  if(i===4){
+    $('#addstaff').onclick=()=>{keep();(W.d.staff=W.d.staff||[{}]).push({});drawStep()};
+    $$('[data-rmstaff]').forEach(b=>b.onclick=()=>{keep();W.d.staff.splice(+b.dataset.rmstaff,1);drawStep()});
+  }
+  if(i===5){
+    $$('[data-doc]').forEach(inp=>inp.onchange=async()=>{
+      keep();msg('Uploading…');
+      try{for(const file of inp.files){const p=await upload('homestay-docs',file);const k=inp.dataset.doc;W.d.docs=W.d.docs||{};(W.d.docs[k]=W.d.docs[k]||[]).push({p,n:file.name})}
+        await saveApp();drawStep()}catch(e){msg('Upload failed: '+e.message)}});
+    $$('[data-rmdoc]').forEach(b=>b.onclick=async()=>{keep();const [k,n]=b.dataset.rmdoc.split(':'),[x]=W.d.docs[k].splice(+n,1);sb.storage.from('homestay-docs').remove([x.p]);await saveApp();drawStep()});
+    $$('[data-view]').forEach(a=>a.onclick=async e=>{e.preventDefault();const {data}=await sb.storage.from('homestay-docs').createSignedUrl(a.dataset.view,600);if(data)window.open(data.signedUrl,'_blank','noopener')});
+    $('#phin').onchange=async e=>{
+      keep();const have=(W.d.listing_photos||[]).length,files=[...e.target.files].slice(0,3-have);msg('Uploading…');
+      try{for(const file of files){(W.d.listing_photos=W.d.listing_photos||[]).push(await upload('photos',file))}await saveApp();drawStep()}catch(err){msg('Upload failed: '+err.message)}};
+    $$('[data-rmph]').forEach(b=>b.onclick=async()=>{keep();const [p]=W.d.listing_photos.splice(+b.dataset.rmph,1);sb.storage.from('photos').remove([p]);await saveApp();drawStep()});
+  }
+  if(i>0)$('#back').onclick=()=>{keep();W.step--;drawStep()};
+  $('#save').onclick=async()=>{keep();try{await saveApp();toast('Draft saved')}catch(e){msg(e.message)}};
+  f.onsubmit=async e=>{
+    e.preventDefault();msg('');
+    if(!f.reportValidity())return;
+    keep();const err=checkStep(i,W.d);if(err){msg(err);return}
+    const last=i===TITLES.length-1,btn=$('#next');btn.disabled=true;
+    try{
+      if(last){const e2=checkAll(W.d);if(e2){msg(e2);btn.disabled=false;return}
+        if(!confirm('Submit this application to Pathik?'))return btn.disabled=false;
+        await saveApp('submitted');toast('Submitted');location.hash='#/print/'+W.id;return}
+      await saveApp();W.step++;drawStep();
+    }catch(e3){msg(e3.message);btn.disabled=false}
+  };
+}
+function checkStep(i,d){
+  if(i===0&&d.caretaker_on&&!d.caretaker_name)return 'Enter the caretaker\'s name (item 4).';
+  if(i===0&&(d.lat<-90||d.lat>90||d.lng<-180||d.lng>180))return 'Latitude or longitude is not valid.';
+  if(i===2){
+    const n=+d.rooms_offered||0,b=+d.total_beds||0;
+    if(n<1||n>8)return 'Offer at least 1 and at most 8 rooms.';
+    if(b>24)return 'Total beds cannot be more than 24.';
+    const min=d.category==='Gold'?120:60;
+    for(const [k,l] of RT){const r=get(d,'rooms.'+k)||{};if(+r.n>0){
+      if(!(+get(d,'tariff.'+k)>0))return `Enter the tariff for ${l}.`;
+      if(+r.area&&+r.area<min&&k!=='dorm')return `${l}: ${d.category||'the'} category needs at least ${min} sq ft per room.`}}
+  }
+  return '';
+}
+function checkAll(d){
+  for(let i=0;i<TITLES.length;i++){const e=checkStep(i,d);if(e)return e}
+  const need=DOCS.filter(x=>!x[2]||d.caretaker_on).filter(x=>!(d.docs&&d.docs[x[0]]&&d.docs[x[0]].length));
+  if(need.length)return 'Please upload: '+need.map(x=>x[1].split('.')[0]+'. '+x[1].split('. ')[1].slice(0,40)).join('; ');
+  if(!(d.listing_photos||[]).length)return 'Add at least one photo for your public listing.';
+  const miss=CHK.filter((c,n)=>reqFor(d.category,c)==='M'&&get(d,'checklist.'+(n+1))==='no').length;
+  if(miss&&!confirm(`${miss} mandatory item(s) are marked No. The Department may refuse or ask you to fix them. Submit anyway?`))return 'Review the checklist.';
+  return '';
+}
+async function saveApp(status){
+  const payload={data:W.d};if(status)payload.status=status;
+  if(W.id){const {error}=await sb.from('homestay_applications').update(payload).eq('id',W.id);if(error)throw error}
+  else{const {data,error}=await sb.from('homestay_applications').insert(payload).select('id').single();if(error)throw error;W.id=data.id}
+  if(status)W.status=status;
+}
+
+/* ---------------- print set: Form A, Schedule, Undertaking, Annexure-1, Form F ---------------- */
+async function printView(id){
+  const a=await loadApp(id),d=a.data||{},r=d.rooms||{},t=d.tariff||{};
+  const row=(n,l,v)=>`<tr><td class="n">${n}</td><td>${l}</td><td>${esc(v??'')}</td></tr>`;
+  const bf=d.breakfast==='yes'?'that I have included Breakfast in the tariff and shall serve it compulsorily to Guests without any additional cost.':'that I have not included Breakfast in the tariff and shall serve breakfast on request by the Guest.';
+  const roman=['i','ii','iii','iv','v','vi','vii','viii','ix','x','xi','xii','xiii','xiv','xv','xvi','xvii','xviii','xix'];
+  const A=`<div class="paper"><h2>Form-A</h2><h4>(See clause 3)<br>Application form for registration of Homestay (Paying Guest House)</h4><table>
+  ${row(1,'Name of the owner / lessee',d.owner_name)}${row(2,'Name of the establishment',d.estab_name)}${row(3,'Category for which applied (Silver/Gold)',d.category)}
+  ${row(4,'Name of the person authorized to manage the establishment (in case of caretaker)',d.caretaker_on?d.caretaker_name:'—')}${row(5,'Complete postal address of the establishment',d.address)}
+  ${row(6,'Distance in km from: (a) Airport '+(d.dist_airport??'')+' (b) Railway station '+(d.dist_rail??'')+' (c) Nearest bus terminal/stand '+(d.dist_bus??'')+' (d) City centre '+(d.dist_city??'')+' (e) Nearest shopping centre '+(d.dist_shop??'')+' (f) Nearest metro station '+(d.dist_metro??'—'),'','')}
+  ${row('7','Details of establishment','')}${row('(a)','Owned or leased premises',d.tenure==='leased'?'Leased (registered lease deed enclosed)':'Owned (proof of ownership enclosed)')}
+  ${row('(b)','Width of the road',d.road_width)}${row('(c)','Parking area available',d.parking)}${row('(d)','Plot area (sq m)',d.plot_area)}${row('(e)','Covered area (sq m)',d.covered_area)}
+  ${row('(g)','Rooms (with attached bathroom and W.C.) offered under the scheme / total beds',(d.rooms_offered??'')+' rooms / '+(d.total_beds??'')+' beds')}
+  ${row('(h)','Common area (sq m): lobby/lounge '+(d.lobby_area??'')+', dining space '+(d.dining_area??''),'','')}
+  ${row('(i)','Additional facilities',d.extra_facilities)}${row('(j)','Eco-friendly facilities',d.eco)}${row('(k)','Firefighting equipment / hydrants',d.fire)}
+  ${row(8,'Breakfast served (Yes/No). If yes, the tariff includes breakfast',d.breakfast==='yes'?'Yes':'No')}
+  ${row(9,'Types of food / meals provided',({veg:'Veg',nonveg:'Non-veg',both:'Veg and non-veg'}[d.meals]||'')+(d.meals_note?'. '+d.meals_note:''))}
+  ${row(11,'Details of fee: e-challan no. / date / amount',(d.challan_no||'')+' / '+(d.challan_date?fdate(d.challan_date):'')+' / '+(d.challan_amount!=null?inr(d.challan_amount):''))}
+  ${row(12,'Documents mentioned in Annexure-1 are enclosed','Yes')}</table>
+  <h3>7(f) Details of rooms and 10. Tariff for rooms</h3><table><tr><th>Type of room</th><th>No. of rooms</th><th>No. of beds</th><th>Area (sq ft)</th><th>Tariff (₹)</th></tr>${RT.map(([k,l])=>`<tr><td>${l}${k==='dorm'?' (per bed)':''}</td><td>${esc(get(r,k+'.n')??'')}</td><td>${esc(get(r,k+'.beds')??'')}</td><td>${esc(get(r,k+'.area')??'')}</td><td>${esc(t[k]??'')}</td></tr>`).join('')}</table>
+  <h3>13. Members / staff residing in the homestay</h3><table><tr><th>Name</th><th>Age</th><th>Profession</th><th>Contact</th><th>Photo ID</th></tr>${(d.staff||[]).map(s=>`<tr><td>${esc(s.name||'')}</td><td>${esc(s.age||'')}</td><td>${esc(s.profession||'')}</td><td>${esc(s.phone||'')}</td><td>${esc(s.id_type||'')}</td></tr>`).join('')}</table>
+  <p>${esc(d.background_note||'')}</p><h3>Verification</h3><p>I ${esc(get(d,'ut.name')||'……………')} S/o ${esc(get(d,'ut.father')||'……………')} do hereby verify that the information provided above is true to the best of my knowledge and the documents are authentic.</p><div class="sign"><span>Place: ${esc(get(d,'ut.place')||'')}<br>Date: ${fdate(get(d,'ut.date'))}</span><span>Signature of the owner / lessee</span></div></div>`;
+  const S=`<div class="paper pb"><h2>Schedule</h2><h4>Checklist for Registration/Renewal of Homestay (Paying Guest House) Establishment</h4><table><tr><th>S.No.</th><th>General</th><th>Silver</th><th>Gold</th><th>Certification by the establishment (Yes/No)</th></tr>${CHK.map((c,n)=>`<tr><td>${n+1}</td><td>${esc(c[0])}</td><td>${c[1]}</td><td>${c[2]}</td><td>${({yes:'Yes',no:'No'})[get(d,'checklist.'+(n+1))]||''}</td></tr>`).join('')}</table><p>M = mandatory, D = desirable.</p><div class="sign"><span>Place: ${esc(get(d,'ut.place')||'')}<br>Date: ${fdate(get(d,'ut.date'))}</span><span>Signature of owner / lessee</span></div></div>`;
+  const U=`<div class="paper pb"><h2>Undertaking</h2><h4>(On non-judicial stamp paper)<br>Home Stay (Paying Guest House)</h4><p>To, The Prescribed Authority, Tourist Reception Centre / Tourist Information Bureau.</p><p>I hereby undertake the following:</p><table>${UT.map((x,n)=>`<tr><td class="n">(${roman[n]})</td><td>${esc(x==='BREAKFAST'?bf:x)}</td></tr>`).join('')}</table>${UCLOSE.map(x=>`<p>${esc(x)}</p>`).join('')}<div class="sign"><span>Place: ${esc(get(d,'ut.place')||'')}<br>Date: ${fdate(get(d,'ut.date'))}<br>Name: ${esc(get(d,'ut.name')||'')}<br>Mob. No.: ${esc(get(d,'ut.mobile')||'')}<br>Email: ${esc(get(d,'ut.email')||'')}</span><span>Signature of owner / lessee</span></div></div>`;
+  const need=DOCS.filter(x=>!x[2]||d.caretaker_on);
+  const N=`<div class="paper pb"><h2>Annexure-1</h2><h4>Checklist of documents to be enclosed with the application form</h4><table>${need.map(([k,l])=>`<tr><td>${esc(l)}</td><td>${(d.docs&&d.docs[k]&&d.docs[k].length)?'Enclosed':''}</td></tr>`).join('')}<tr><td>6. Separate sheet with particulars of owner/lessee/caretaker residing in the establishment</td><td>Printed with Form A</td></tr></table><p>Application fee: e-challan number ${esc(d.challan_no||'')} dated ${d.challan_date?fdate(d.challan_date):''}</p></div>`;
+  const c=d.caretaker||{};
+  const F=d.caretaker_on?`<div class="paper pb"><h2>Form-F</h2><h4>(See clause 3)<br>Caretaker Details Declaration Form</h4><p>To, The Prescribed Authority, Tourist Reception Centre / Tourist Information Bureau</p><p><b>Subject:</b> Declaration of Authorized Caretaker Details for Homestay (Paying Guest House).</p><p>On the basis of declaration submitted by the owner/lessee, the following details of the authorized caretaker appointed for the operation and management of the Paying Guest House are furnished as under:</p><table>${row(1,'Name of caretaker',d.caretaker_name)}${row(2,'Father\'s / husband\'s name',c.father)}${row(3,'Permanent address',c.perm_addr)}${row(4,'Local address (if different)',c.local_addr)}${row(5,'Aadhaar number (last 4 digits; self-attested copy enclosed)',c.aadhaar4?'XXXX XXXX '+c.aadhaar4:'')}${row(6,'Mobile number',c.mobile)}${row(7,'Email ID',c.email)}</table><h3>Declaration</h3><p>I hereby declare that the above-named caretaker is authorized by me to manage and operate the Homestay (Paying Guest House) on my behalf, in accordance with the provisions of the Homestay (Paying Guest House). I further undertake to inform the Prescribed Authority within a week in case of any change in caretaker details.</p><table>${row(1,'Name of owner / lessee',d.owner_name)}${row(2,'Address of Paying Guest',d.address)}${row(3,'Address of owner\'s residence',c.owner_res)}${row(4,'Phone',c.owner_phone)}${row(5,'Email ID',c.owner_email)}</table><div class="sign"><span>Signature of owner / lessee<br>Name: ${esc(d.owner_name||'')}<br>Date:</span><span>Signature of authorized caretaker<br>Name: ${esc(d.caretaker_name||'')}<br>Date:</span></div><p class="hint">For office use: Received and verified by (name and designation, signature, date).</p></div>`:'';
+  $('#app').innerHTML=`<section class="card noprint"><h2>${a.status==='submitted'?'Application submitted':'Your forms'}</h2><p>Print these forms (or save as PDF), sign every page that asks for your signature, and file them with the e-challan receipt and documents at your Tourist Reception Centre / Tourist Information Bureau. The undertaking goes on non-judicial stamp paper. <b>Pathik cannot register your homestay; only the Department can.</b></p><div class="row"><button id="pr">Print / Save as PDF</button><a class="btn ghost" href="#/">Back to my applications</a></div></section>${A}${S}${U}${N}${F}`;
+  $('#pr').onclick=()=>window.print();
+}
+
+/* ---------------- certificates: Form B (temporary) and Form C (registration) ---------------- */
+async function certView(id){
+  const a=await loadApp(id),d=a.data||{},r=d.rooms||{},t=d.tariff||{};
+  const line=(v)=>`<u>&nbsp;${esc(v||'…………………')}&nbsp;</u>`;
+  let body;
+  if(a.status==='temporary'){
+    body=`<div class="paper"><h4>Form ‘B’ (See clause 3)</h4><h2>Temporary Registration Certificate</h2><p>No: ${line(a.reg_no)} &nbsp; Date: ${line(fdate(a.temp_issued_on))}</p><p><b>Sub:</b> Temporary Registration Certificate.</p><p>To, The Establishment Owner/Lessee (Name ${line(d.owner_name)})</p><p>On the basis of undertaking of the applicant the establishment ${line(d.estab_name)} (address ${line(d.address)}) is acknowledged as temporary registered Homestay (Paying Guest House). This certificate is valid till date ${line(fdate(a.temp_valid_till))} (${esc(wdate(a.temp_valid_till))}).</p><p>In case of any inconvenience tourists can contact Tourist Reception Centre / Tourist Information Bureau ${esc(a.trc_name||'')}. Phone no. ${esc(a.trc_phone||'')}</p><p><b>Note:</b> The Temporary Registration Certificate does not entitle the owner/lessee to continue operations after the date of expiry of validity.</p><p>Date of Issue: ${fdate(a.temp_issued_on)}</p></div>`;
+  }else if(['approved','expired'].includes(a.status)){
+    body=`<div class="paper"><h4>Form ‘C’ (See clause 3)</h4><h2>Registration Certificate<br>Homestay (Paying Guest House)</h2><p>Category: ${line(a.category_final||d.category)} &nbsp; Registration No.: ${line(a.reg_no)} &nbsp; Date: ${line(fdate(a.reg_issued_on))}</p><p>This is to certify that the below addressed house is registered as a Homestay (Paying Guest House) under the Rajasthan Homestay (Paying Guest House) Scheme, 2026 of the Department of Tourism, Government of Rajasthan. The Homestay (Paying Guest House) ${line(d.estab_name)} located at ${line(d.address)} is owned/leased to Mr./Ms. ${line(d.owner_name)} and managed by Mr./Ms. (Owner/Lessee/Caretaker) ${line(d.caretaker_on?d.caretaker_name:d.owner_name)}.</p><p>In case of any inconvenience, tourists can contact Tourist Reception Centre ${esc(a.trc_name||'')}, Telephone: ${esc(a.trc_phone||'')} or E-mail ${esc(a.trc_email||'')}</p><table><tr><th>Room category</th><th>No. of rooms</th><th>Room tariff (₹)</th></tr>${RT.map(([k,l])=>`<tr><td>${l}</td><td>${esc(get(r,k+'.n')??'')}</td><td>${esc(t[k]??'')}${k==='dorm'?' per bed':''}</td></tr>`).join('')}</table><p>Homestay (Paying Guest House) is registered on ${line(fdate(a.reg_issued_on))} and valid till date ${line(fdate(a.reg_valid_till))} (${esc(wdate(a.reg_valid_till))}).</p></div>`;
+  }else body='<p>A certificate is available after the Department registers your homestay.</p>';
+  $('#app').innerHTML=`<section class="card noprint"><h2>Certificate details</h2><p class="muted">This page shows the details Pathik recorded from the certificate issued by the Department of Tourism. It is not an official certificate; keep the original issued to you.</p><div class="row"><button id="pr">Print</button><a class="btn ghost" href="#/">Back</a></div></section>${body}`;
+  const p=$('#pr');if(p)p.onclick=()=>window.print();
+}
+
+/* ---------------- Form E: register of guests / tourists ---------------- */
+async function registerView(id){
+  const a=await loadApp(id);
+  if(!['temporary','approved'].includes(a.status)){$('#app').innerHTML='<section class="card"><h2>Guest register</h2><p>The register opens after your homestay is registered.</p><a class="btn" href="#/">Back</a></section>';return}
+  const {data,error}=await sb.from('homestay_guests').select('*').eq('application_id',id).order('checkin',{ascending:false});
+  if(error){$('#app').innerHTML=setupMsg(error);return}
+  const dt=s=>s?new Date(s).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'}):'';
+  const now=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const g=data||[];
+  $('#app').innerHTML=`<section class="card noprint"><h2>Form E: register of guests / tourists</h2><p class="muted">${esc((a.data||{}).estab_name||'')} · Reg. no. ${esc(a.reg_no||'')}. Keep this register for at least seven years. Foreign guests: also report to the Police as the law requires. Send last month's details to your TRC/TIB by the 5th.</p>
+  <form id="gf" class="noprint"><div class="grid2">${fld({},'guest_name','1. Name of the guest / tourist',{req:1})}${fld({},'age','2. Age',{type:'number',min:0})}${fld({},'nationality','3. Nationality',{req:1})}${fld({},'id_number','4. Passport / photo ID number',{req:1,hint:'Visible only to you. Only collect what the register needs.'})}${fld({},'phone','6. Phone number',{type:'tel'})}${fld({},'arrived_from','9. Place from which the guest arrived')}${fld({},'purpose','10. Purpose of visit')}${fld({checkin:now},'checkin','7. Date and time of check-in',{type:'datetime-local',req:1})}</div>${fld({},'permanent_address','5. Permanent address',{type:'textarea',rows:2,req:1})}<div class="fld"><label class="chk"><input type="checkbox" data-k="guest_signed"> 11. The guest has signed the register (on the printed copy)</label></div><p class="hint" id="gmsg" role="alert" style="color:#a8321f"></p><button type="submit">Add to register</button></form></section>
+  <section class="card noprint"><div class="row" style="margin:0"><button class="ghost" id="gp">Print register</button><label style="display:flex;gap:6px;align-items:center">Month <input type="month" id="gm" style="width:auto"></label><button class="ghost" id="gc">Download CSV</button><a class="btn ghost" href="#/">Back</a></div></section>
+  <div class="paper"><h2>Form ‘E’ · Register of Guest / Tourists</h2><h4>Name of the establishment: ${esc((a.data||{}).estab_name||'')} · Registration no. ${esc(a.reg_no||'')}</h4><div class="scroll"><table><tr><th>1 Name</th><th>2 Age</th><th>3 Nationality</th><th>4 Passport / Photo ID no.</th><th>5 Permanent address</th><th>6 Phone</th><th>7 Check-in</th><th>8 Check-out</th><th>9 Arrived from</th><th>10 Purpose</th><th>11 Signature</th></tr>${g.map(x=>`<tr><td>${esc(x.guest_name)}</td><td>${esc(x.age??'')}</td><td>${esc(x.nationality||'')}</td><td>${esc(x.id_number||'')}</td><td>${esc(x.permanent_address||'')}</td><td>${esc(x.phone||'')}</td><td>${dt(x.checkin)}</td><td>${x.checkout?dt(x.checkout):`<button class="ghost noprint" data-out="${x.id}">Check out now</button>`}</td><td>${esc(x.arrived_from||'')}</td><td>${esc(x.purpose||'')}</td><td>${x.guest_signed?'Signed':''}</td></tr>`).join('')||'<tr><td colspan="11">No guests recorded yet.</td></tr>'}</table></div></div>`;
+  $('#gf').onsubmit=async e=>{
+    e.preventDefault();const o={};collect($('#gf'),o);
+    const row={application_id:id,guest_name:o.guest_name,age:o.age===''?null:o.age,nationality:o.nationality,id_number:o.id_number,permanent_address:o.permanent_address,phone:o.phone||null,checkin:new Date(o.checkin).toISOString(),arrived_from:o.arrived_from||null,purpose:o.purpose||null,guest_signed:!!o.guest_signed};
+    const {error}=await sb.from('homestay_guests').insert(row);
+    if(error){$('#gmsg').textContent=error.message;return}toast('Added');registerView(id);
+  };
+  $$('[data-out]').forEach(b=>b.onclick=async()=>{const {error}=await sb.from('homestay_guests').update({checkout:new Date().toISOString()}).eq('id',b.dataset.out);if(error)toast(error.message);else registerView(id)});
+  $('#gp').onclick=()=>window.print();
+  $('#gc').onclick=()=>{
+    const m=$('#gm').value,rows=m?g.filter(x=>(x.checkin||'').startsWith(m)||new Date(x.checkin).toISOString().slice(0,7)===m):g;
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+    const csv=[['Name','Age','Nationality','Passport/Photo ID','Permanent address','Phone','Check-in','Check-out','Arrived from','Purpose','Signed'].map(q).join(',')].concat(rows.map(x=>[x.guest_name,x.age,x.nationality,x.id_number,x.permanent_address,x.phone,x.checkin,x.checkout,x.arrived_from,x.purpose,x.guest_signed?'Yes':'No'].map(q).join(','))).join('\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})),l=document.createElement('a');l.href=url;l.download='guest-register'+(m?'-'+m:'')+'.csv';l.click();URL.revokeObjectURL(url);
+  };
+}
+
+/* ---------------- Form D: renewal ---------------- */
+async function renewView(id){
+  const a=await loadApp(id),d=a.data||{};
+  if(!['approved','expired'].includes(a.status)){$('#app').innerHTML='<section class="card"><h2>Renewal (Form D)</h2><p>Renewal applies to a registered homestay (Form C issued).</p><a class="btn" href="#/">Back</a></section>';return}
+  const {data:rn}=await sb.from('homestay_renewals').select('*').eq('application_id',id).order('created_at',{ascending:false});
+  const exp=a.reg_valid_till?new Date(a.reg_valid_till+'T00:00:00'):null;
+  const open=exp?new Date(exp):null,close=exp?new Date(exp):null;
+  if(open)open.setMonth(open.getMonth()-3);if(close)close.setMonth(close.getMonth()-1);
+  const today=new Date(),inWin=exp&&today>=open&&today<=close;
+  const fee=FEE[a.category_final||d.category]||'';
+  $('#app').innerHTML=`<section class="card noprint"><h2>Form D: application for renewal</h2><p>${exp?`Your registration is valid till <b>${fdate(a.reg_valid_till)}</b>. The scheme lets you apply from <b>${open.toLocaleDateString('en-GB')}</b> (3 months before) to <b>${close.toLocaleDateString('en-GB')}</b> (1 month before expiry). ${inWin?'You are inside that window.':'You are outside that window.'}`:'The expiry date is not recorded yet.'}</p>
+  <form id="rf"><div class="grid2">${fld({},'challan_no','E-challan number (renewal fee)',{req:1})}${fld({challan_amount:fee},'challan_amount','Amount (₹)',{type:'number',min:0,req:1})}</div><p class="hint" id="rmsg" role="alert" style="color:#a8321f"></p><div class="row"><button type="submit">Record renewal request</button><button type="button" class="ghost" id="rp">Print Form D</button><a class="btn ghost" href="#/">Back</a></div></form>
+  ${(rn||[]).length?`<h3>Earlier requests</h3><ul>${rn.map(x=>`<li>${new Date(x.created_at).toLocaleDateString('en-GB')} · e-challan ${esc(x.challan_no)} · ${esc(x.status)}</li>`).join('')}</ul>`:''}</section>
+  <div class="paper"><h2>Form-D</h2><h4>(See clause 3)<br>Application for Renewal of Registration &amp; Classification of Homestay (Paying Guest House)</h4><p>To, Prescribed Authority, Tourist Reception Centre / Tourist Information Bureau,</p><p>I enclose herewith E-Challan No ………………… payable to the Tourist Reception Centre / Tourist Information Bureau as renewal fee.</p><p>Sir, I hereby apply for renewal of Registration of Homestay (Paying Guest House). Brief details are as under:</p><table><tr><td class="n">1</td><td>Name of the establishment (with complete address)</td><td>${esc(d.estab_name||'')}, ${esc(d.address||'')}</td></tr><tr><td class="n">2</td><td>Date of registration with date of validity (copy of certificate enclosed)</td><td>${fdate(a.reg_issued_on)} to ${fdate(a.reg_valid_till)} (Reg. no. ${esc(a.reg_no||'')})</td></tr></table><p>As the period of validity of the registration certificate is expiring on ${fdate(a.reg_valid_till)}, I request that the said certificate may be renewed for a further period of two years on the terms and conditions as laid down under the Rajasthan Homestay (Paying Guest House) Scheme, 2026.</p><div class="sign"><span></span><span>Signature of owner / lessee<br>${esc(d.owner_name||'')}</span></div></div>`;
+  $('#rp').onclick=()=>window.print();
+  $('#rf').onsubmit=async e=>{
+    e.preventDefault();const o={};collect($('#rf'),o);
+    const {error}=await sb.from('homestay_renewals').insert({application_id:id,challan_no:o.challan_no,challan_amount:o.challan_amount===''?null:o.challan_amount});
+    if(error){$('#rmsg').textContent=error.message;return}toast('Renewal request recorded');renewView(id);
+  };
+}
+init();
+</script>
+</body>
+</html>
